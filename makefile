@@ -7,10 +7,10 @@ SRCDIR=src
 
 LIBS=
 
-_DEPS =
+_DEPS = RankBitvector.h WaveletTree.h
 DEPS = $(patsubst %, $(SRCDIR)/%, $(_DEPS))
 
-_OBJ =
+_OBJ = RankBitvector.o WaveletTree.o
 OBJ = $(patsubst %, $(ODIR)/%, $(_OBJ))
 
 LINKFLAGS = $(CPPFLAGS) -static-libstdc++
@@ -20,16 +20,16 @@ VERSION := Branch $(shell git rev-parse --abbrev-ref HEAD) commit $(shell git re
 $(shell mkdir -p bin)
 $(shell mkdir -p obj)
 
-$(BINDIR)/test_bwt: $(ODIR)/test_bwt.o libsais/src/libsais64.c libsais/src/libsais.c
+$(BINDIR)/test_wavelet: $(ODIR)/test_wavelet.o $(OBJ)
 	$(GPP) -o $@ $^
 
-$(ODIR)/test_bwt.o: $(SRCDIR)/test_bwt.cpp $(DEPS)
-	$(GPP) -c -o $@ $< $(CPPFLAGS)
+$(BINDIR)/test_bwt: $(ODIR)/test_bwt.o libsais/src/libsais64.c libsais/src/libsais.c
+	$(GPP) -o $@ $^
 
 $(ODIR)/%.o: $(SRCDIR)/%.cpp $(DEPS)
 	$(GPP) -c -o $@ $< $(CPPFLAGS)
 
-all: $(BINDIR)/test_bwt
+all: $(BINDIR)/test_bwt $(BINDIR)/test_wavelet
 
 clean:
 	rm -f $(ODIR)/*
