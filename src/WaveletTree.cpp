@@ -1,40 +1,60 @@
 #include <cassert>
 #include "WaveletTree.h"
 
+WaveletTree::WaveletTree(size_t size) :
+counts({0, 0, 0, 0, 0, 0}),
+layer1(size),
+layer2(size),
+layer3(size),
+built(false)
+{
+}
+
 WaveletTree::WaveletTree(const std::string& seq) :
-counts({0, 0, 0, 0, 0}),
+counts({0, 0, 0, 0, 0, 0}),
 layer1(seq.size()),
 layer2(seq.size()),
-layer3(seq.size())
+layer3(seq.size()),
+built(false)
 {
+	initialize(seq);
+}
+
+void WaveletTree::initialize(const std::string& seq)
+{
+	assert(!built);
 	for (size_t i = 0; i < seq.size(); i++)
 	{
 		switch(seq[i])
 		{
 			case 0:
-			case 'N':
-			case 'n':
+			case '$':
 				counts[0] += 1;
 				break;
 			case 1:
-			case 'A':
-			case 'a':
+			case 'N':
+			case 'n':
 				counts[1] += 1;
 				break;
 			case 2:
-			case 'C':
-			case 'c':
+			case 'A':
+			case 'a':
 				counts[2] += 1;
 				break;
 			case 3:
-			case 'G':
-			case 'g':
+			case 'C':
+			case 'c':
 				counts[3] += 1;
 				break;
 			case 4:
+			case 'G':
+			case 'g':
+				counts[4] += 1;
+				break;
+			case 5:
 			case 'T':
 			case 't':
-				counts[4] += 1;
+				counts[5] += 1;
 				break;
 			default:
 				assert(false);
@@ -43,13 +63,13 @@ layer3(seq.size())
 	size_t leftPos = 0;
 	size_t rightPos = 0;
 	size_t thirdPos = 0;
+	size_t thirdRightPos = 0;
 	for (size_t i = 0; i < seq.size(); i++)
 	{
 		switch(seq[i])
 		{
 			case 0:
-			case 'N':
-			case 'n':
+			case '$':
 				layer1.set(i, false);
 				layer2.set(leftPos, false);
 				layer3.set(thirdPos, false);
@@ -57,8 +77,8 @@ layer3(seq.size())
 				leftPos += 1;
 				break;
 			case 1:
-			case 'A':
-			case 'a':
+			case 'N':
+			case 'n':
 				layer1.set(i, false);
 				layer2.set(leftPos, false);
 				layer3.set(thirdPos, true);
@@ -66,56 +86,79 @@ layer3(seq.size())
 				leftPos += 1;
 				break;
 			case 2:
+			case 'A':
+			case 'a':
+				layer1.set(i, false);
+				layer2.set(leftPos, true);
+				layer3.set(counts[0] + counts[1] + thirdRightPos, false);
+				thirdRightPos += 1;
+				leftPos += 1;
+				break;
+			case 3:
 			case 'C':
 			case 'c':
 				layer1.set(i, false);
 				layer2.set(leftPos, true);
+				layer3.set(counts[0] + counts[1] + thirdRightPos, true);
+				thirdRightPos += 1;
 				leftPos += 1;
 				break;
-			case 3:
+			case 4:
 			case 'G':
 			case 'g':
 				layer1.set(i, true);
-				layer2.set(counts[0] + counts[1] + counts[2] + rightPos, false);
+				layer2.set(counts[0] + counts[1] + counts[2] + counts[3] + rightPos, false);
 				rightPos += 1;
 				break;
-			case 4:
+			case 5:
 			case 'T':
 			case 't':
 				layer1.set(i, true);
-				layer2.set(counts[0] + counts[1] + counts[2] + rightPos, true);
+				layer2.set(counts[0] + counts[1] + counts[2] + counts[3] + rightPos, true);
 				rightPos += 1;
 				break;
 			default:
 				assert(false);
 		}
 	}
-	assert(leftPos == counts[0] + counts[1] + counts[2]);
+	assert(leftPos == counts[0] + counts[1] + counts[2] + counts[3]);
 	assert(thirdPos == counts[0] + counts[1]);
-	assert(rightPos == counts[3] + counts[4]);
+	assert(thirdRightPos == counts[2] + counts[3]);
+	assert(rightPos == counts[4] + counts[5]);
 	layer1.buildRanks();
 	layer2.buildRanks();
 	layer3.buildRanks();
-	assert(layer1.rankZero(seq.size()) == counts[0] + counts[1] + counts[2]);
-	assert(layer1.rankOne(seq.size()) == counts[3] + counts[4]);
-	assert(layer2.rankZero(counts[0] + counts[1] + counts[2]) == counts[0] + counts[1]);
-	assert(layer2.rankOne(counts[0] + counts[1] + counts[2]) == counts[2]);
-	assert(layer3.rankOne(layer3.size()) == counts[1]);
+	assert(layer1.rankZero(seq.size()) == counts[0] + counts[1] + counts[2] + counts[3]);
+	assert(layer1.rankOne(seq.size()) == counts[4] + counts[5]);
+	assert(layer2.rankZero(seq.size()) == counts[0] + counts[1] + counts[4]);
+	assert(layer2.rankOne(seq.size()) == counts[2] + counts[3] + counts[5]);
+	assert(layer2.rankZero(counts[0] + counts[1] + counts[2] + counts[3]) == counts[0] + counts[1]);
+	assert(layer2.rankOne(counts[0] + counts[1] + counts[2] + counts[3]) == counts[2] + counts[3]);
+	assert(layer3.rankZero(counts[0] + counts[1]) == counts[0]);
+	assert(layer3.rankOne(counts[0] + counts[1]) == counts[1]);
+	assert(layer3.rankOne(layer3.size()) == counts[1] + counts[3]);
+	built = true;
 }
 
 uint8_t WaveletTree::get(size_t index) const
 {
+	assert(built);
 	assert(index < size());
 	bool bit1 = layer1.get(index);
 	if (bit1)
 	{
-		bool bit2 = layer2.get(counts[0] + counts[1] + counts[2] + layer1.rankOne(index));
-		if (!bit2) return 3;
-		if (bit2) return 4;
+		bool bit2 = layer2.get(counts[0] + counts[1] + counts[2] + counts[3] + layer1.rankOne(index));
+		if (!bit2) return 4;
+		if (bit2) return 5;
 	}
 	size_t layer2pos = layer1.rankZero(index);
 	bool bit2 = layer2.get(layer2pos);
-	if (bit2) return 2;
+	if (bit2)
+	{
+		bool bit3 = layer3.get(counts[0] + counts[1] + layer2.rankOne(layer2pos));
+		if (!bit3) return 2;
+		if (bit3) return 3;
+	}
 	bool bit3 = layer3.get(layer2.rankZero(layer2pos));
 	if (!bit3) return 0;
 	if (bit3) return 1;
@@ -125,6 +168,7 @@ uint8_t WaveletTree::get(size_t index) const
 
 size_t WaveletTree::rank(size_t index, uint8_t c) const
 {
+	assert(built);
 	assert(index <= size());
 	size_t layer2pos, layer3pos;
 	switch(c)
@@ -139,13 +183,18 @@ size_t WaveletTree::rank(size_t index, uint8_t c) const
 			return layer3.rankOne(layer3pos);
 		case 2:
 			layer2pos = layer1.rankZero(index);
-			return layer2.rankOne(layer2pos);
+			layer3pos = layer2.rankOne(layer2pos);
+			return layer3.rankZero(counts[0] + counts[1] + layer3pos) - counts[0];
 		case 3:
-			layer2pos = layer1.rankOne(index);
-			return layer2.rankZero(counts[0] + counts[1] + counts[2] + layer2pos) - counts[0] - counts[1];
+			layer2pos = layer1.rankZero(index);
+			layer3pos = layer2.rankOne(layer2pos);
+			return layer3.rankOne(counts[0] + counts[1] + layer3pos) - counts[1];
 		case 4:
 			layer2pos = layer1.rankOne(index);
-			return layer2.rankOne(counts[0] + counts[1] + counts[2] + layer2pos) - counts[2];
+			return layer2.rankZero(counts[0] + counts[1] + counts[2] + counts[3] + layer2pos) - counts[0] - counts[1];
+		case 5:
+			layer2pos = layer1.rankOne(index);
+			return layer2.rankOne(counts[0] + counts[1] + counts[2] + counts[3] + layer2pos) - counts[2] - counts[3];
 		default:
 			assert(false);
 			return 0;
@@ -156,4 +205,11 @@ size_t WaveletTree::rank(size_t index, uint8_t c) const
 size_t WaveletTree::size() const
 {
 	return layer1.size();
+}
+
+size_t WaveletTree::charCount(uint8_t c) const
+{
+	assert(built);
+	assert(c <= 5);
+	return counts[c];
 }

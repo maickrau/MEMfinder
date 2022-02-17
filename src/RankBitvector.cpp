@@ -18,6 +18,15 @@ realSize(size)
 	values.resize(10 * ((size + 511) / 512), 0);
 }
 
+void RankBitvector::clear()
+{
+	assert(!ranksBuilt);
+	for (size_t i = 0; i < values.size(); i++)
+	{
+		values[i] = 0;
+	}
+}
+
 void RankBitvector::buildRanks()
 {
 	assert(!ranksBuilt);
@@ -53,7 +62,7 @@ bool RankBitvector::get(size_t index) const
 	size_t smallBlockIndex = blockStart + 2 + (index % 512) / 64;
 	size_t offset = index % 64;
 	uint64_t value = values[smallBlockIndex];
-	return (bool)((value >> offset) & 1);
+	return (bool)(((value >> offset) & 1) == 1);
 }
 
 void RankBitvector::set(size_t index, bool value)

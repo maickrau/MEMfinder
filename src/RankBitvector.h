@@ -1,3 +1,6 @@
+#ifndef RankBitvector_h
+#define RankBitvector_h
+
 #include <cstdint>
 #include <vector>
 
@@ -13,8 +16,11 @@ public:
 	void set(size_t index, bool value);
 	size_t rankOne(size_t index) const;
 	size_t rankZero(size_t index) const;
+	void clear();
 private:
 	std::vector<uint64_t> values;
 	bool ranksBuilt;
 	size_t realSize;
 };
+
+#endif
