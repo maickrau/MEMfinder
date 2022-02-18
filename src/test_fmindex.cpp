@@ -37,22 +37,21 @@ int main(int argc, char** argv)
 		}
 	}
 	seq.push_back(0);
-	FMIndex index { seq, 32 };
-	assert(index.size() == seq.size());
+	FMIndex index { std::move(seq), std::stoi(argv[2]) };
 	// std::string tmp;
 	// std::cout << "done" << std::endl;
 	// getline(std::cin, tmp);
 	// std::cin >> tmp;
-	// size_t start = 0;
-	// size_t end = index.size();
-	// for (size_t i = seq.size()-2; i < seq.size(); i--)
-	// {
-	// 	assert(end > start);
-	// 	assert(i != 0 || end == start+1);
-	// 	if (end == start+1)
-	// 	{
-	// 		assert(index.locate(start) == i);
-	// 	}
-	// 	std::tie(start, end) = index.advance(start, end, seq[i]);
-	// }
+	size_t start = 0;
+	size_t end = index.size();
+	for (size_t i = seq.size()-2; i < seq.size(); i--)
+	{
+		assert(end > start);
+		assert(i != 0 || end == start+1);
+		if (end == start+1)
+		{
+			assert(index.locate(start) == i);
+		}
+		std::tie(start, end) = index.advance(start, end, seq[i]);
+	}
 }

@@ -3,9 +3,11 @@
 #include "libsais64.h"
 #include "FMIndex.h"
 
-FMIndex::FMIndex(std::string seq, const size_t sampleRate) :
+FMIndex::FMIndex(std::string&& seq, const size_t sampleRate) :
 sampleRate(sampleRate),
 tree(seq.size()),
+lowSample(false),
+lowSampledPositions(false),
 sampledPositions(),
 hasPosition(seq.size())
 {
@@ -25,7 +27,15 @@ hasPosition(seq.size())
 		std::string bwt;
 		bwt.resize(seq.size(), 0);
 		bwt[0] = seq[seq.size()];
-		sampledPositions.reserve((seq.size() + sampleRate - 1) / sampleRate);
+		lowSample = (size_t)((seq.size() + sampleRate - 1) / sampleRate) < (size_t)std::numeric_limits<uint32_t>::max();
+		if (lowSample)
+		{
+			lowSampledPositions.reserve((seq.size() + sampleRate - 1) / sampleRate);
+		}
+		else
+		{
+			sampledPositions.reserve((seq.size() + sampleRate - 1) / sampleRate);
+		}
 		for (size_t i = 0; i < seq.size(); i++)
 		{
 			if (tmp[i] > 0)
@@ -34,7 +44,14 @@ hasPosition(seq.size())
 				if ((tmp[i]-1) % sampleRate == 0)
 				{
 					hasPosition.set(i, true);
-					sampledPositions.push_back((tmp[i]-1) / sampleRate);
+					if (lowSample)
+					{
+						lowSampledPositions.push_back((tmp[i]-1) / sampleRate);
+					}
+					else
+					{
+						sampledPositions.push_back((tmp[i]-1) / sampleRate);
+					}
 				}
 			}
 			else
@@ -43,11 +60,19 @@ hasPosition(seq.size())
 				if ((seq.size()-1) % sampleRate == 0)
 				{
 					hasPosition.set(i, true);
-					sampledPositions.push_back((seq.size()-1) / sampleRate);
+					if (lowSample)
+					{
+						lowSampledPositions.push_back((seq.size()-1) / sampleRate);
+					}
+					else
+					{
+						sampledPositions.push_back((seq.size()-1) / sampleRate);
+					}
 				}
 			}
 		}
-		assert(sampledPositions.size() == (seq.size() + sampleRate - 1) / sampleRate);
+		assert(lowSample || sampledPositions.size() == (seq.size() + sampleRate - 1) / sampleRate);
+		assert(!lowSample || lowSampledPositions.size() == (seq.size() + sampleRate - 1) / sampleRate);
 		tree.initialize(bwt);
 	}
 	startIndices[0] = 0;
@@ -58,7 +83,8 @@ hasPosition(seq.size())
 	startIndices[5] = tree.charCount(4) + startIndices[4];
 	assert(startIndices[5] < size());
 	hasPosition.buildRanks();
-	assert(sampledPositions.size() == hasPosition.rankOne(hasPosition.size()));
+	assert(lowSample || sampledPositions.size() == hasPosition.rankOne(hasPosition.size()));
+	assert(!lowSample || lowSampledPositions.size() == hasPosition.rankOne(hasPosition.size()));
 }
 
 size_t FMIndex::advance(size_t pos, uint8_t c) const
@@ -90,13 +116,22 @@ size_t FMIndex::charCount(uint8_t c) const
 
 size_t FMIndex::locate(size_t pos) const
 {
-	size_t extraOffset = 0;
+	size_t offset = 0;
 	while (!hasPosition.get(pos))
 	{
 		pos = advance(pos, get(pos));
-		extraOffset += 1;
+		offset += 1;
 	}
-	return sampledPositions[hasPosition.rankOne(pos)] * sampleRate + extraOffset;
+	assert(offset < sampleRate);
+	if (lowSample)
+	{
+		offset += (size_t)lowSampledPositions[hasPosition.rankOne(pos)] * sampleRate;
+	}
+	else
+	{
+		offset += (size_t)sampledPositions[hasPosition.rankOne(pos)] * sampleRate;
+	}
+	return offset;
 }
 
 uint8_t FMIndex::getNext(size_t i) const

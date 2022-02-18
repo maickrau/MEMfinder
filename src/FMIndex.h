@@ -10,7 +10,7 @@
 class FMIndex
 {
 public:
-	FMIndex(std::string seq, const size_t sampleRate);
+	FMIndex(std::string&& seq, const size_t sampleRate);
 	std::pair<size_t, size_t> advance(size_t start, size_t end, uint8_t c) const;
 	size_t size() const;
 	size_t charCount(uint8_t c) const;
@@ -22,6 +22,8 @@ private:
 	std::array<size_t, 6> startIndices;
 	size_t sampleRate;
 	WaveletTree tree;
+	bool lowSample;
+	std::vector<uint32_t> lowSampledPositions;
 	std::vector<uint64_t> sampledPositions;
 	RankBitvector hasPosition;
 };
