@@ -39,12 +39,13 @@ int main(int argc, char** argv)
 	seq.push_back(0);
 	FMIndex index { seq, 32 };
 	assert(index.size() == seq.size());
-	std::string tmp;
-	std::cout << "done" << std::endl;
-	std::cin >> tmp;
+	// std::string tmp;
+	// std::cout << "done" << std::endl;
+	// getline(std::cin, tmp);
+	// std::cin >> tmp;
 	// size_t start = 0;
 	// size_t end = index.size();
-	// for (size_t i = seq.size()-1; i < seq.size(); i--)
+	// for (size_t i = seq.size()-2; i < seq.size(); i--)
 	// {
 	// 	assert(end > start);
 	// 	assert(i != 0 || end == start+1);

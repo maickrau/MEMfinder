@@ -26,18 +26,30 @@ hasPosition(seq.size())
 		std::string bwt;
 		bwt.resize(seq.size(), 0);
 		bwt[0] = seq[seq.size()];
+		sampledPositions.reserve((seq.size() + sampleRate - 1) / sampleRate);
 		for (size_t i = 0; i < seq.size(); i++)
 		{
 			if (tmp[i] > 0)
 			{
 				bwt[i] = seq[tmp[i]-1];
+				if ((tmp[i]-1) % sampleRate == 0)
+				{
+					hasPosition.set(i, true);
+					sampledPositions.push_back((tmp[i]-1) / sampleRate);
+				}
 			}
 			else
 			{
 				lastIndex = i;
 				bwt[i] = seq[seq.size()-1];
+				if ((seq.size()-1) % sampleRate == 0)
+				{
+					hasPosition.set(i, true);
+					sampledPositions.push_back((seq.size()-1) / sampleRate);
+				}
 			}
 		}
+		assert(sampledPositions.size() == (seq.size() + sampleRate - 1) / sampleRate);
 		tree.initialize(bwt);
 	}
 	startIndices[0] = 0;
@@ -48,36 +60,8 @@ hasPosition(seq.size())
 	startIndices[5] = tree.charCount(4) + startIndices[4];
 	assert(startIndices[5] < size());
 	size_t pos = lastIndex;
-	hasPosition.clear();
-	for (size_t i = size()-1; i < size(); i--)
-	{
-		assert(!hasPosition.get(pos));
-		if (i % sampleRate == 0) hasPosition.set(pos, true);
-		pos = advance(pos, get(pos));
-	}
 	hasPosition.buildRanks();
-	sampledPositions.resize((size()+sampleRate-1) / sampleRate, std::numeric_limits<size_t>::max());
 	assert(sampledPositions.size() == hasPosition.rankOne(hasPosition.size()));
-	pos = lastIndex;
-	for (size_t i = size()-1; i < size(); i--)
-	{
-		if (i % sampleRate == 0)
-		{
-			assert(hasPosition.get(pos));
-			size_t index = hasPosition.rankOne(pos);
-			assert(sampledPositions[index] == std::numeric_limits<size_t>::max());
-			sampledPositions[index] = i / sampleRate;
-		}
-		else
-		{
-			assert(!hasPosition.get(pos));
-		}
-		pos = advance(pos, get(pos));
-	}
-	for (size_t i = 0; i < sampledPositions.size(); i++)
-	{
-		assert(sampledPositions[i] != std::numeric_limits<size_t>::max());
-	}
 }
 
 size_t FMIndex::advance(size_t pos, uint8_t c) const
