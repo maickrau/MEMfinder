@@ -11,7 +11,6 @@ hasPosition(seq.size())
 {
 	assert(sampleRate >= 1);
 	assert(sampleRate < seq.size());
-	size_t lastIndex;
 	for (size_t i = 0; i < seq.size()-1; i++)
 	{
 		assert(seq[i] <= 5);
@@ -21,8 +20,8 @@ hasPosition(seq.size())
 	{
 		std::vector<int64_t> tmp;
 		tmp.resize(seq.size());
-		lastIndex = libsais64((uint8_t*)seq.data(), (int64_t*)tmp.data(), seq.size(), 0, nullptr);
-		assert(lastIndex < seq.size());
+		size_t status = libsais64((uint8_t*)seq.data(), (int64_t*)tmp.data(), seq.size(), 0, nullptr);
+		assert(status == 0);
 		std::string bwt;
 		bwt.resize(seq.size(), 0);
 		bwt[0] = seq[seq.size()];
@@ -40,7 +39,6 @@ hasPosition(seq.size())
 			}
 			else
 			{
-				lastIndex = i;
 				bwt[i] = seq[seq.size()-1];
 				if ((seq.size()-1) % sampleRate == 0)
 				{
@@ -59,7 +57,6 @@ hasPosition(seq.size())
 	startIndices[4] = tree.charCount(3) + startIndices[3];
 	startIndices[5] = tree.charCount(4) + startIndices[4];
 	assert(startIndices[5] < size());
-	size_t pos = lastIndex;
 	hasPosition.buildRanks();
 	assert(sampledPositions.size() == hasPosition.rankOne(hasPosition.size()));
 }
