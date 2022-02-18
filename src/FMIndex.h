@@ -16,8 +16,8 @@ public:
 	size_t charCount(uint8_t c) const;
 	size_t locate(size_t pos) const;
 	uint8_t get(size_t i) const;
-private:
 	size_t advance(size_t pos, uint8_t c) const;
+private:
 	uint8_t getNext(size_t i) const;
 	std::array<size_t, 6> startIndices;
 	size_t sampleRate;

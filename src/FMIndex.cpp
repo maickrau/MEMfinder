@@ -93,7 +93,7 @@ size_t FMIndex::advance(size_t pos, uint8_t c) const
 	assert(startIndices[c] < size());
 	assert(tree.rank(pos, c) < size());
 	size_t result = startIndices[c] + tree.rank(pos, c);
-	assert(result < size());
+	assert(result <= size());
 	return result;
 }
 
