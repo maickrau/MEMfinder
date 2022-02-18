@@ -25,6 +25,8 @@ namespace MEMfinder
 		size_t matchLen;
 		template <typename F>
 		friend void iterateMEMGroups(const FMIndex&, const std::string&, const size_t, F);
+		template <typename F>
+		friend void iterateMEMs(const FMIndex&, const std::string&, const MatchGroup&, F);
 	};
 
 	uint8_t mapChar(const char);
@@ -32,25 +34,32 @@ namespace MEMfinder
 	template <typename F>
 	void iterateMEMGroups(const FMIndex& index, const std::string& seq, const size_t minLen, F callback)
 	{
-		for (size_t end = seq.size()-1; end >= minLen; end--)
+		for (size_t end = seq.size()-1; end >= minLen-1; end--)
 		{
-			if (end != seq.size()-1 && mapChar(seq[end+1]) == 0) continue;
+			if (end != seq.size()-1 && mapChar(seq[end]) == 0) continue;
 			size_t lowStart;
 			size_t lowEnd;
 			size_t highStart;
 			size_t highEnd;
-			if (end == seq.size()-1 || mapChar(seq[end+1]) == 0 || mapChar(seq[end+1]) == 5)
+			if (end == seq.size()-1 || mapChar(seq[end+1]) == 0)
 			{
 				lowStart = 0;
 				lowEnd = index.size();
 				highStart = 0;
 				highEnd = 0;
 			}
+			else if (mapChar(seq[end+1]) == 5)
+			{
+				lowStart = 0;
+				lowEnd = index.charStart(mapChar(seq[end+1]));
+				highStart = 0;
+				highEnd = 0;
+			}
 			else
 			{
 				lowStart = 0;
-				lowEnd = index.advance(index.size(), mapChar(seq[end+1]-1));
-				highStart = index.advance(index.size(), mapChar(seq[end+1]-1));
+				lowEnd = index.charStart(mapChar(seq[end+1]));
+				highStart = index.charStart(mapChar(seq[end+1])+1);
 				highEnd = index.size();
 			}
 			size_t length = 0;
@@ -88,6 +97,57 @@ namespace MEMfinder
 				}
 				length += 1;
 				if (newSize == 0) break;
+			}
+		}
+	}
+
+	template <typename F>
+	void iterateMEMs(const FMIndex& index, const std::string& seq, const MatchGroup& matches, F callback)
+	{
+		if (matches.queryPos() == 0)
+		{
+			for (size_t i = matches.lowStart; i < matches.lowEnd; i++)
+			{
+				size_t pos = index.locate(i);
+				pos += 1;
+				pos %= index.size();
+				callback(pos, matches.queryPos(), matches.matchLength());
+			}
+			for (size_t i = matches.highStart; i < matches.highEnd; i++)
+			{
+				size_t pos = index.locate(i);
+				pos += 1;
+				pos %= index.size();
+				callback(pos, matches.queryPos(), matches.matchLength());
+			}
+			return;
+		}
+		for (uint8_t c = 0; c <= 5; c++)
+		{
+			if (c == mapChar(seq[matches.queryPos()-1])) continue;
+			if (matches.lowEnd > matches.lowStart)
+			{
+				size_t newStart = index.advance(matches.lowStart, c);
+				size_t newEnd = index.advance(matches.lowEnd, c);
+				for (size_t i = newStart; i < newEnd; i++)
+				{
+					size_t pos = index.locate(i);
+					pos += 2;
+					pos %= index.size();
+					callback(pos, matches.queryPos(), matches.matchLength());
+				}
+			}
+			if (matches.highEnd > matches.highStart)
+			{
+				size_t newStart = index.advance(matches.highStart, c);
+				size_t newEnd = index.advance(matches.highEnd, c);
+				for (size_t i = newStart; i < newEnd; i++)
+				{
+					size_t pos = index.locate(i);
+					pos += 2;
+					pos %= index.size();
+					callback(pos, matches.queryPos(), matches.matchLength());
+				}
 			}
 		}
 	}

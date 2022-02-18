@@ -114,6 +114,11 @@ size_t FMIndex::charCount(uint8_t c) const
 	return tree.charCount(c);
 }
 
+size_t FMIndex::charStart(uint8_t c) const
+{
+	return startIndices[c];
+}
+
 size_t FMIndex::locate(size_t pos) const
 {
 	size_t offset = 0;
