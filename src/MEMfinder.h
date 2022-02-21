@@ -10,10 +10,11 @@ namespace MEMfinder
 	class Match
 	{
 	public:
-		Match(size_t refPos, size_t queryPos, size_t length);
+		Match(size_t refPos, size_t queryPos, size_t length, bool fw);
 		size_t refPos;
 		size_t queryPos;
 		size_t length;
+		bool fw;
 	};
 
 	class MatchGroup
@@ -31,19 +32,20 @@ namespace MEMfinder
 		size_t highEnd;
 		size_t seqPos;
 		size_t matchLen;
-		template <typename F>
-		friend void iterateMEMGroupsInternal(const FMIndex&, const std::string&, const size_t, size_t, size_t, size_t, size_t, size_t, size_t, F);
-		template <typename F>
-		friend void iterateMEMGroups(const FMIndex&, const std::string&, const size_t, F);
-		template <typename F>
-		friend void iterateMEMs(const FMIndex&, const std::string&, const MatchGroup&, F);
+		template <typename String, typename F>
+		friend void iterateMEMGroupsInternal(const FMIndex&, const String&, const size_t, size_t, size_t, size_t, size_t, size_t, size_t, F);
+		template <typename String, typename F>
+		friend void iterateMEMGroups(const FMIndex&, const String&, const size_t, F);
+		template <typename String, typename F>
+		friend void iterateMEMs(const FMIndex&, const String&, const MatchGroup&, F);
 	};
 
 	uint8_t mapChar(const char);
 	std::vector<Match> getBestMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount);
+	std::vector<Match> getBestFwBwMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount);
 
-	template <typename F>
-	void iterateMEMGroupsInternal(const FMIndex& index, const std::string& seq, const size_t minLen, size_t lowStart, size_t lowEnd, size_t highStart, size_t highEnd, size_t end, size_t length, F callback)
+	template <typename String, typename F>
+	void iterateMEMGroupsInternal(const FMIndex& index, const String& seq, const size_t minLen, size_t lowStart, size_t lowEnd, size_t highStart, size_t highEnd, size_t end, size_t length, F callback)
 	{
 		while (length <= end)
 		{
@@ -82,8 +84,8 @@ namespace MEMfinder
 		}
 	}
 
-	template <typename F>
-	void iterateMEMGroups(const FMIndex& index, const std::string& seq, const size_t minLen, F callback)
+	template <typename String, typename F>
+	void iterateMEMGroups(const FMIndex& index, const String& seq, const size_t minLen, F callback)
 	{
 		assert(minLen >= 2);
 		size_t lastLow = 0;
@@ -138,8 +140,8 @@ namespace MEMfinder
 		}
 	}
 
-	template <typename F>
-	void iterateMEMs(const FMIndex& index, const std::string& seq, const MatchGroup& matches, F callback)
+	template <typename String, typename F>
+	void iterateMEMs(const FMIndex& index, const String& seq, const MatchGroup& matches, F callback)
 	{
 		if (matches.queryPos() == 0)
 		{
@@ -148,14 +150,14 @@ namespace MEMfinder
 				size_t pos = index.locate(i);
 				pos += 1;
 				pos %= index.size();
-				callback(Match { pos, matches.queryPos(), matches.matchLength() });
+				callback(Match { pos, matches.queryPos(), matches.matchLength(), true });
 			}
 			for (size_t i = matches.highStart; i < matches.highEnd; i++)
 			{
 				size_t pos = index.locate(i);
 				pos += 1;
 				pos %= index.size();
-				callback(Match { pos, matches.queryPos(), matches.matchLength() });
+				callback(Match { pos, matches.queryPos(), matches.matchLength(), true });
 			}
 			return;
 		}
@@ -171,7 +173,7 @@ namespace MEMfinder
 					size_t pos = index.locate(i);
 					pos += 2;
 					pos %= index.size();
-					callback(Match { pos, matches.queryPos(), matches.matchLength() });
+					callback(Match { pos, matches.queryPos(), matches.matchLength(), true });
 				}
 			}
 			if (matches.highEnd > matches.highStart)
@@ -183,7 +185,7 @@ namespace MEMfinder
 					size_t pos = index.locate(i);
 					pos += 2;
 					pos %= index.size();
-					callback(Match { pos, matches.queryPos(), matches.matchLength() });
+					callback(Match { pos, matches.queryPos(), matches.matchLength(), true });
 				}
 			}
 		}

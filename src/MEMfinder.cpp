@@ -1,13 +1,15 @@
 #include <queue>
 #include "FMIndex.h"
 #include "MEMfinder.h"
+#include "ReverseComplementView.h"
 
 namespace MEMfinder
 {
-	Match::Match(size_t refPos, size_t queryPos, size_t length) :
+	Match::Match(size_t refPos, size_t queryPos, size_t length, bool fw) :
 	refPos(refPos),
 	queryPos(queryPos),
-	length(length)
+	length(length),
+	fw(fw)
 	{
 	}
 
@@ -67,7 +69,8 @@ namespace MEMfinder
 		}
 	};
 
-	std::vector<Match> getBestMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount)
+	template <typename String>
+	std::pair<size_t, std::priority_queue<MatchGroup, std::vector<MatchGroup>, MatchGroupComparer>> getBestMatchGroups(const FMIndex& index, const String& seq, const size_t minLen, const size_t maxCount)
 	{
 		std::priority_queue<MatchGroup, std::vector<MatchGroup>, MatchGroupComparer> chosen;
 		size_t chosenCount = 0;
@@ -132,18 +135,74 @@ namespace MEMfinder
 		});
 		assert(chosenCount <= maxCount);
 		assert(chosen.size() == 0 || chosen.top().matchLength() >= lengthFloor);
+		return std::make_pair(chosenCount, chosen);
+	}
+
+	std::vector<Match> getBestMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount)
+	{
+		auto chosen = getBestMatchGroups(index, seq, minLen, maxCount);
 		std::vector<Match> result;
-		result.reserve(chosenCount);
-		while (chosen.size() > 0)
+		result.reserve(chosen.first);
+		while (chosen.second.size() > 0)
 		{
-			auto top = chosen.top();
-			chosen.pop();
+			auto top = chosen.second.top();
+			chosen.second.pop();
 			iterateMEMs(index, seq, top, [&result](Match&& match)
 			{
 				result.emplace_back(match);
 			});
 		}
-		assert(result.size() == chosenCount);
+		assert(result.size() == chosen.first);
+		return result;
+	}
+
+	std::vector<Match> getBestFwBwMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount)
+	{
+		auto chosenFw = getBestMatchGroups(index, seq, minLen, maxCount);
+		ReverseComplementView revComp { seq };
+		auto chosenBw = getBestMatchGroups(index, revComp, minLen, maxCount);
+		size_t totalChosen = chosenFw.first + chosenBw.first;
+		while (totalChosen > maxCount)
+		{
+			assert(chosenFw.second.size() > 0 || chosenBw.second.size() > 0);
+			size_t floor = seq.size()+1;
+			if (chosenFw.second.size() > 0) floor = std::min(floor, chosenFw.second.top().matchLength());
+			if (chosenBw.second.size() > 0) floor = std::min(floor, chosenBw.second.top().matchLength());
+			assert(floor > 0);
+			assert(floor < seq.size()+1);
+			while (chosenFw.second.size() > 0 && chosenFw.second.top().matchLength() <= floor)
+			{
+				totalChosen -= chosenFw.second.top().count();
+				chosenFw.second.pop();
+			}
+			while (chosenBw.second.size() > 0 && chosenBw.second.top().matchLength() <= floor)
+			{
+				totalChosen -= chosenBw.second.top().count();
+				chosenBw.second.pop();
+			}
+		}
+		std::vector<Match> result;
+		while (chosenFw.second.size() > 0)
+		{
+			auto top = chosenFw.second.top();
+			chosenFw.second.pop();
+			iterateMEMs(index, seq, top, [&result](Match&& match)
+			{
+				result.emplace_back(match);
+			});
+		}
+		while (chosenBw.second.size() > 0)
+		{
+			auto top = chosenBw.second.top();
+			chosenBw.second.pop();
+			iterateMEMs(index, revComp, top, [&result, &seq](Match&& match)
+			{
+				match.fw = false;
+				match.queryPos = seq.size() - match.queryPos - match.length;
+				result.emplace_back(match);
+			});
+		}
+		assert(result.size() <= maxCount);
 		return result;
 	}
 
