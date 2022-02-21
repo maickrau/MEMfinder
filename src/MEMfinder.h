@@ -7,6 +7,14 @@
 
 namespace MEMfinder
 {
+	class Match
+	{
+	public:
+		Match(size_t refPos, size_t queryPos, size_t length);
+		size_t refPos;
+		size_t queryPos;
+		size_t length;
+	};
 
 	class MatchGroup
 	{
@@ -32,6 +40,7 @@ namespace MEMfinder
 	};
 
 	uint8_t mapChar(const char);
+	std::vector<Match> getBestMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount);
 
 	template <typename F>
 	void iterateMEMGroupsInternal(const FMIndex& index, const std::string& seq, const size_t minLen, size_t lowStart, size_t lowEnd, size_t highStart, size_t highEnd, size_t end, size_t length, F callback)
@@ -139,14 +148,14 @@ namespace MEMfinder
 				size_t pos = index.locate(i);
 				pos += 1;
 				pos %= index.size();
-				callback(pos, matches.queryPos(), matches.matchLength());
+				callback(Match { pos, matches.queryPos(), matches.matchLength() });
 			}
 			for (size_t i = matches.highStart; i < matches.highEnd; i++)
 			{
 				size_t pos = index.locate(i);
 				pos += 1;
 				pos %= index.size();
-				callback(pos, matches.queryPos(), matches.matchLength());
+				callback(Match { pos, matches.queryPos(), matches.matchLength() });
 			}
 			return;
 		}
@@ -162,7 +171,7 @@ namespace MEMfinder
 					size_t pos = index.locate(i);
 					pos += 2;
 					pos %= index.size();
-					callback(pos, matches.queryPos(), matches.matchLength());
+					callback(Match { pos, matches.queryPos(), matches.matchLength() });
 				}
 			}
 			if (matches.highEnd > matches.highStart)
@@ -174,7 +183,7 @@ namespace MEMfinder
 					size_t pos = index.locate(i);
 					pos += 2;
 					pos %= index.size();
-					callback(pos, matches.queryPos(), matches.matchLength());
+					callback(Match { pos, matches.queryPos(), matches.matchLength() });
 				}
 			}
 		}

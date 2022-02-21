@@ -55,9 +55,9 @@ int main(int argc, char** argv)
 	size_t matchCount = 0;
 	MEMfinder::iterateMEMGroups(index, query, minLength, [&matches, &index, &query, &matchCount](MEMfinder::MatchGroup group) {
 		size_t oldSize = matchCount;
-		MEMfinder::iterateMEMs(index, query, group, [&matches, &matchCount](size_t indexpos, size_t querypos, size_t matchlen)
+		MEMfinder::iterateMEMs(index, query, group, [&matches, &matchCount](MEMfinder::Match&& m)
 		{
-			matches[querypos].emplace(indexpos, matchlen);
+			matches[m.queryPos].emplace(m.refPos, m.length);
 			matchCount += 1;
 		});
 		assert(matchCount == oldSize + group.count());

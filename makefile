@@ -35,10 +35,13 @@ $(BINDIR)/test_count: $(ODIR)/test_count.o $(OBJ) libsais/src/libsais64.c libsai
 $(BINDIR)/test_mems: $(ODIR)/test_mems.o $(OBJ) libsais/src/libsais64.c libsais/src/libsais.c
 	$(GPP) -o $@ $^
 
+$(BINDIR)/test_bestmems: $(ODIR)/test_bestmems.o $(OBJ) libsais/src/libsais64.c libsais/src/libsais.c
+	$(GPP) -o $@ $^
+
 $(ODIR)/%.o: $(SRCDIR)/%.cpp $(DEPS)
 	$(GPP) -c -o $@ $< $(CPPFLAGS)
 
-all: $(BINDIR)/test_bwt $(BINDIR)/test_wavelet $(BINDIR)/test_fmindex $(BINDIR)/test_count $(BINDIR)/test_mems
+all: $(BINDIR)/test_bwt $(BINDIR)/test_wavelet $(BINDIR)/test_fmindex $(BINDIR)/test_count $(BINDIR)/test_mems $(BINDIR)/test_bestmems
 
 clean:
 	rm -f $(ODIR)/*
