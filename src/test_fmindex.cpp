@@ -6,6 +6,7 @@
 
 int main(int argc, char** argv)
 {
+	size_t sampleRate = std::stoi(argv[2]);
 	std::string seq;
 	{
 		std::ifstream file { argv[1] };
@@ -37,7 +38,7 @@ int main(int argc, char** argv)
 		}
 	}
 	seq.push_back(0);
-	FMIndex index { std::move(seq), std::stoi(argv[2]) };
+	FMIndex index { std::move(seq), sampleRate };
 	// std::string tmp;
 	// std::cout << "done" << std::endl;
 	// getline(std::cin, tmp);

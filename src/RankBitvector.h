@@ -9,8 +9,10 @@
 class RankBitvector
 {
 public:
+	RankBitvector();
 	RankBitvector(size_t size);
 	void buildRanks();
+	void resize(size_t newSize);
 	size_t size() const;
 	bool get(size_t index) const;
 	void set(size_t index, bool value);

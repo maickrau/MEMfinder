@@ -8,7 +8,7 @@
 
 int main(int argc, char** argv)
 {
-	size_t indexDensity = std::stoi(argv[3]);
+	size_t sampleRate = std::stoi(argv[3]);
 	size_t minLength = std::stoi(argv[4]);
 	std::string seq;
 	{
@@ -42,7 +42,7 @@ int main(int argc, char** argv)
 	}
 	seq.push_back(0);
 	auto preIndex = std::chrono::system_clock::now();
-	FMIndex index { std::move(seq), std::stoi(argv[3]) };
+	FMIndex index { std::move(seq), sampleRate };
 	auto postIndex = std::chrono::system_clock::now();
 	std::cerr << "indexing took " << std::chrono::duration_cast<std::chrono::milliseconds>(postIndex - preIndex).count() << "ms" << std::endl;
 	std::string query;

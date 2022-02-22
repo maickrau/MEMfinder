@@ -6,7 +6,6 @@
 #include <chrono>
 #include "FMIndex.h"
 #include "MEMfinder.h"
-#include "/usr/local/include/valgrind/callgrind.h"
 
 char complement(char c)
 {

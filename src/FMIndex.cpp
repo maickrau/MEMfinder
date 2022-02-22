@@ -3,14 +3,34 @@
 #include "libsais64.h"
 #include "FMIndex.h"
 
-FMIndex::FMIndex(std::string&& seq, const size_t sampleRate) :
-sampleRate(sampleRate),
-tree(seq.size()),
+FMIndex::FMIndex() :
+built(false),
+sampleRate(0),
+tree(),
 lowSample(false),
-lowSampledPositions(false),
+lowSampledPositions(),
 sampledPositions(),
-hasPosition(seq.size())
+hasPosition()
 {
+}
+
+FMIndex::FMIndex(std::string&& seq, const size_t sampleRate) :
+built(false),
+sampleRate(0),
+tree(),
+lowSample(false),
+lowSampledPositions(),
+sampledPositions(),
+hasPosition()
+{
+	initialize(std::move(seq), sampleRate);
+}
+
+void FMIndex::initialize(std::string&& seq, const size_t sampleRate)
+{
+	assert(!built);
+	hasPosition.resize(seq.size());
+	this->sampleRate = sampleRate;
 	assert(sampleRate >= 1);
 	assert(sampleRate < seq.size());
 	for (size_t i = 0; i < seq.size()-1; i++)
@@ -85,6 +105,7 @@ hasPosition(seq.size())
 	hasPosition.buildRanks();
 	assert(lowSample || sampledPositions.size() == hasPosition.rankOne(hasPosition.size()));
 	assert(!lowSample || lowSampledPositions.size() == hasPosition.rankOne(hasPosition.size()));
+	built = true;
 }
 
 size_t FMIndex::advance(size_t pos, uint8_t c) const
@@ -121,6 +142,7 @@ size_t FMIndex::charStart(uint8_t c) const
 
 size_t FMIndex::locate(size_t pos) const
 {
+	assert(built);
 	size_t offset = 0;
 	while (!hasPosition.get(pos))
 	{

@@ -6,7 +6,6 @@
 #include <chrono>
 #include "FMIndex.h"
 #include "MEMfinder.h"
-#include "/usr/local/include/valgrind/callgrind.h"
 
 int main(int argc, char** argv)
 {

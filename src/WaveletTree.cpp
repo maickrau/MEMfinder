@@ -1,6 +1,15 @@
 #include <cassert>
 #include "WaveletTree.h"
 
+WaveletTree::WaveletTree() :
+counts({0, 0, 0, 0, 0, 0}),
+layer1(),
+layer2(),
+layer3(),
+built(false)
+{
+}
+
 WaveletTree::WaveletTree(size_t size) :
 counts({0, 0, 0, 0, 0, 0}),
 layer1(size),
@@ -23,6 +32,20 @@ built(false)
 void WaveletTree::initialize(const std::string& seq)
 {
 	assert(!built);
+	if (layer1.size() == 0)
+	{
+		assert(layer2.size() == 0);
+		assert(layer3.size() == 0);
+		layer1.resize(seq.size());
+		layer2.resize(seq.size());
+		layer3.resize(seq.size());
+	}
+	else
+	{
+		assert(layer1.size() == seq.size());
+		assert(layer2.size() == seq.size());
+		assert(layer3.size() == seq.size());
+	}
 	for (size_t i = 0; i < seq.size(); i++)
 	{
 		switch(seq[i])

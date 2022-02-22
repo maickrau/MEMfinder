@@ -10,6 +10,7 @@
 class WaveletTree
 {
 public:
+	WaveletTree();
 	WaveletTree(size_t size);
 	WaveletTree(const std::string& seq);
 	void initialize(const std::string& seq);
