@@ -3,6 +3,7 @@ CPPFLAGS=-Wall -Wextra -std=c++17 -O3 -g -Ilibsais/src
 
 ODIR=obj
 BINDIR=bin
+LIBDIR=lib
 SRCDIR=src
 
 LIBS=
@@ -11,7 +12,7 @@ _DEPS = RankBitvector.h WaveletTree.h FMIndex.h MEMfinder.h ReverseComplementVie
 DEPS = $(patsubst %, $(SRCDIR)/%, $(_DEPS))
 
 _OBJ = RankBitvector.o WaveletTree.o FMIndex.o MEMfinder.o ReverseComplementView.o
-OBJ = $(patsubst %, $(ODIR)/%, $(_OBJ))
+OBJ = $(patsubst %, $(ODIR)/%, $(_OBJ)) $(ODIR)/sais.o $(ODIR)/sais64.o
 
 LINKFLAGS = $(CPPFLAGS) -static-libstdc++
 
@@ -19,36 +20,49 @@ VERSION := Branch $(shell git rev-parse --abbrev-ref HEAD) commit $(shell git re
 
 $(shell mkdir -p bin)
 $(shell mkdir -p obj)
+$(shell mkdir -p lib)
 
-$(BINDIR)/test_wavelet: $(ODIR)/test_wavelet.o $(OBJ) libsais/src/libsais64.c libsais/src/libsais.c
+lib: $(LIBDIR)/memfinder.a
+
+$(LIBDIR)/memfinder.a: $(OBJ) $(DEPS)
+	ar rvs $@ $(OBJ)
+
+$(BINDIR)/test_wavelet: $(ODIR)/test_wavelet.o $(OBJ)
 	$(GPP) -o $@ $^
 
-$(BINDIR)/test_bwt: $(ODIR)/test_bwt.o $(OBJ) libsais/src/libsais64.c libsais/src/libsais.c
+$(BINDIR)/test_bwt: $(ODIR)/test_bwt.o $(OBJ)
 	$(GPP) -o $@ $^
 
-$(BINDIR)/test_fmindex: $(ODIR)/test_fmindex.o $(OBJ) libsais/src/libsais64.c libsais/src/libsais.c
+$(BINDIR)/test_fmindex: $(ODIR)/test_fmindex.o $(OBJ)
 	$(GPP) -o $@ $^
 
-$(BINDIR)/test_count: $(ODIR)/test_count.o $(OBJ) libsais/src/libsais64.c libsais/src/libsais.c
+$(BINDIR)/test_count: $(ODIR)/test_count.o $(OBJ)
 	$(GPP) -o $@ $^
 
-$(BINDIR)/test_mems: $(ODIR)/test_mems.o $(OBJ) libsais/src/libsais64.c libsais/src/libsais.c
+$(BINDIR)/test_mems: $(ODIR)/test_mems.o $(OBJ)
 	$(GPP) -o $@ $^
 
-$(BINDIR)/test_bestmems: $(ODIR)/test_bestmems.o $(OBJ) libsais/src/libsais64.c libsais/src/libsais.c
+$(BINDIR)/test_bestmems: $(ODIR)/test_bestmems.o $(OBJ)
 	$(GPP) -o $@ $^
 
-$(BINDIR)/test_mems_bidi: $(ODIR)/test_mems_bidi.o $(OBJ) libsais/src/libsais64.c libsais/src/libsais.c
+$(BINDIR)/test_mems_bidi: $(ODIR)/test_mems_bidi.o $(OBJ)
 	$(GPP) -o $@ $^
 
-$(BINDIR)/test_bestmems_bidi: $(ODIR)/test_bestmems_bidi.o $(OBJ) libsais/src/libsais64.c libsais/src/libsais.c
+$(BINDIR)/test_bestmems_bidi: $(ODIR)/test_bestmems_bidi.o $(OBJ)
 	$(GPP) -o $@ $^
+
+$(ODIR)/sais.o: libsais/src/libsais.c
+	$(GPP) -c -o $@ $< $(CPPFLAGS)
+
+$(ODIR)/sais64.o: libsais/src/libsais64.c
+	$(GPP) -c -o $@ $< $(CPPFLAGS)
 
 $(ODIR)/%.o: $(SRCDIR)/%.cpp $(DEPS)
 	$(GPP) -c -o $@ $< $(CPPFLAGS)
 
-all: $(BINDIR)/test_bwt $(BINDIR)/test_wavelet $(BINDIR)/test_fmindex $(BINDIR)/test_count $(BINDIR)/test_mems $(BINDIR)/test_bestmems $(BINDIR)/test_mems_bidi $(BINDIR)/test_bestmems_bidi
+all: $(LIBDIR)/memfinder.a $(BINDIR)/test_bwt $(BINDIR)/test_wavelet $(BINDIR)/test_fmindex $(BINDIR)/test_count $(BINDIR)/test_mems $(BINDIR)/test_bestmems $(BINDIR)/test_mems_bidi $(BINDIR)/test_bestmems_bidi
 
 clean:
 	rm -f $(ODIR)/*
 	rm -f $(BINDIR)/*
+	rm -f $(LIBDIR)/*
