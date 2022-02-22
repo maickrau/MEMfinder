@@ -181,3 +181,8 @@ uint8_t FMIndex::get(size_t i) const
 {
 	return tree.get(i);
 }
+
+bool FMIndex::initialized() const
+{
+	return built;
+}

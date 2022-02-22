@@ -20,6 +20,7 @@ public:
 	size_t locate(size_t pos) const;
 	uint8_t get(size_t i) const;
 	size_t advance(size_t pos, uint8_t c) const;
+	bool initialized() const;
 private:
 	uint8_t getNext(size_t i) const;
 	bool built;
