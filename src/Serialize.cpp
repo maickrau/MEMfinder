@@ -10,11 +10,6 @@ void serialize(std::ostream& stream, uint64_t value)
 	stream.write((const char*)&value, sizeof(uint64_t));
 }
 
-void serialize(std::ostream& stream, size_t value)
-{
-	stream.write((const char*)&value, sizeof(size_t));
-}
-
 void serialize(std::ostream& stream, bool value)
 {
 	uint8_t c = value ? 1 : 0;
@@ -29,11 +24,6 @@ void deserialize(std::istream& stream, uint32_t& value)
 void deserialize(std::istream& stream, uint64_t& value)
 {
 	stream.read((char*)&value, sizeof(uint64_t));
-}
-
-void deserialize(std::istream& stream, size_t& value)
-{
-	stream.read((char*)&value, sizeof(size_t));
 }
 
 void deserialize(std::istream& stream, bool& value)

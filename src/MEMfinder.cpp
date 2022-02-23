@@ -1,4 +1,5 @@
 #include <queue>
+#include <algorithm>
 #include "FMIndex.h"
 #include "MEMfinder.h"
 #include "ReverseComplementView.h"
@@ -204,6 +205,94 @@ namespace MEMfinder
 		}
 		assert(result.size() <= maxCount);
 		return result;
+	}
+
+	std::vector<Match> getBestFwBwMUMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount)
+	{
+		std::vector<Match> maybeMums;
+		iterateMUMs(index, seq, minLen, [&maybeMums](Match m)
+		{
+			maybeMums.push_back(m);
+		});
+		ReverseComplementView revComp { seq };
+		iterateMUMs(index, revComp, minLen, [&maybeMums, &seq](Match m)
+		{
+			m.queryPos = seq.size() - m.queryPos - m.length;
+			m.fw = false;
+			maybeMums.push_back(m);
+		});
+		std::sort(maybeMums.begin(), maybeMums.end(), [](Match left, Match right)
+		{
+			if (left.queryPos < right.queryPos) return true;
+			if (left.queryPos > right.queryPos) return false;
+			if (left.length > right.length) return true;
+			if (left.length < right.length) return false;
+			return false;
+		});
+		std::vector<Match> mums;
+		if (maybeMums.size() == 0) return mums;
+		mums.push_back(maybeMums[0]);
+		size_t longestEnd = maybeMums[0].queryPos + maybeMums[0].length;
+		size_t longestStart = maybeMums[0].queryPos;
+		for (size_t i = 1; i < maybeMums.size(); i++)
+		{
+			size_t endHere = maybeMums[i].queryPos + maybeMums[i].length;
+			if (endHere < longestEnd) continue;
+			if (endHere == longestEnd)
+			{
+				assert(longestStart <= maybeMums[i].queryPos);
+				if (maybeMums[i].queryPos > longestStart) continue;
+				assert(longestStart == maybeMums[i].queryPos);
+				if (mums.size() > 0)
+				{
+					assert(mums.back().queryPos < longestStart || (mums.back().queryPos == longestStart && mums.back().queryPos + mums.back().length == longestEnd));
+					if (mums.back().queryPos == longestStart)
+					{
+						assert(mums.back().queryPos + mums.back().length == longestEnd);
+						mums.pop_back();
+					}
+				}
+				continue;
+			}
+			if (endHere > longestEnd)
+			{
+				assert(longestStart < maybeMums[i].queryPos);
+				assert(mums.size() == 0 || mums.back().queryPos < maybeMums[i].queryPos);
+				assert(mums.size() == 0 || mums.back().queryPos + mums.back().length < maybeMums[i].queryPos + maybeMums[i].length);
+				mums.push_back(maybeMums[i]);
+				longestStart = maybeMums[i].queryPos;
+				longestEnd = maybeMums[i].queryPos + maybeMums[i].length;
+			}
+		}
+		for (size_t i = 1; i < mums.size(); i++)
+		{
+			assert(mums[i].queryPos > mums[i-1].queryPos);
+			assert(mums[i].queryPos + mums[i].length > mums[i-1].queryPos + mums[i-1].length);
+		}
+		if (mums.size() > maxCount)
+		{
+			std::sort(mums.begin(), mums.end(), [](Match left, Match right){
+				if (left.length > right.length) return true;
+				if (left.length < right.length) return false;
+				return false;
+			});
+			while (mums.size() > maxCount)
+			{
+				size_t floor = mums.back().length;
+				while (mums.size() > 0 && mums.back().length == floor)
+				{
+					mums.pop_back();
+				}
+				assert(mums.size() == 0 || mums.back().length > floor);
+			}
+			std::sort(mums.begin(), mums.end(), [](Match left, Match right)
+			{
+				if (left.queryPos < right.queryPos) return true;
+				if (left.queryPos > right.queryPos) return false;
+				assert(false);
+			});
+		}
+		return mums;
 	}
 
 }

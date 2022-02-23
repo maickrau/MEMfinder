@@ -43,6 +43,7 @@ namespace MEMfinder
 	uint8_t mapChar(const char);
 	std::vector<Match> getBestMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount);
 	std::vector<Match> getBestFwBwMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount);
+	std::vector<Match> getBestFwBwMUMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount);
 
 	template <typename String, typename F>
 	void iterateMEMGroupsInternal(const FMIndex& index, const String& seq, const size_t minLen, size_t lowStart, size_t lowEnd, size_t highStart, size_t highEnd, size_t end, size_t length, F callback)
@@ -137,6 +138,62 @@ namespace MEMfinder
 			}
 			lastLow = low;
 			lastHigh = high;
+		}
+	}
+
+	template <typename String, typename F>
+	void iterateMUMs(const FMIndex& index, const String& seq, const size_t minLen, F callback)
+	{
+		assert(minLen >= 2);
+		size_t lastMatch = seq.size();
+		for (size_t end = seq.size()-1; end >= minLen-1; end--)
+		{
+			size_t low = 0;
+			size_t high = index.size();
+			for (size_t length = 0; length <= end; length++)
+			{
+				size_t c = mapChar(seq[end-length]);
+				size_t newLow = index.advance(low, c);
+				size_t newHigh = index.advance(high, c);
+				if (newHigh == newLow)
+				{
+					if (high == low+1)
+					{
+						if (lastMatch > end-length+1)
+						{
+							if (length >= minLen)
+							{
+								size_t pos = index.locate(low);
+								pos += 1;
+								pos %= index.size();
+								callback(Match { pos, end - length + 1, length, true });
+								lastMatch = end-length+1;
+							}
+						}
+					}
+					break;
+				}
+				if (end == length)
+				{
+					if (newHigh == newLow+1)
+					{
+						if (lastMatch > end-length)
+						{
+							if (length+1 >= minLen)
+							{
+								size_t pos = index.locate(newLow);
+								pos += 1;
+								pos %= index.size();
+								callback(Match { pos, end - length, length+1, true });
+								lastMatch = end-length;
+							}
+						}
+					}
+					break;
+				}
+				low = newLow;
+				high = newHigh;
+			}
 		}
 	}
 
