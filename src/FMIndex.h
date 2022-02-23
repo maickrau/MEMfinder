@@ -4,6 +4,7 @@
 #include <vector>
 #include <cstdint>
 #include <string>
+#include <iostream>
 #include "WaveletTree.h"
 #include "RankBitvector.h"
 
@@ -21,6 +22,10 @@ public:
 	uint8_t get(size_t i) const;
 	size_t advance(size_t pos, uint8_t c) const;
 	bool initialized() const;
+	void save(std::ostream& stream) const;
+	void load(std::istream& stream);
+	bool operator==(const FMIndex& other) const;
+	bool operator!=(const FMIndex& other) const;
 private:
 	uint8_t getNext(size_t i) const;
 	bool built;

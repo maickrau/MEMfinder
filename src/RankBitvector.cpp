@@ -1,5 +1,6 @@
 #include <cassert>
 #include "RankBitvector.h"
+#include "Serialize.h"
 
 int popcount(uint64_t x)
 {
@@ -123,4 +124,32 @@ size_t RankBitvector::rankOne(size_t index) const
 	uint64_t bitBlock = values[smallBlockIndex];
 	result += popcount(bitBlock & (((uint64_t)1 << (uint64_t)(offset)) - 1));
 	return result;
+}
+
+void RankBitvector::save(std::ostream& stream) const
+{
+	assert(ranksBuilt);
+	serialize(stream, values);
+	serialize(stream, realSize);
+}
+
+void RankBitvector::load(std::istream& stream)
+{
+	assert(!ranksBuilt);
+	deserialize(stream, values);
+	deserialize(stream, realSize);
+	ranksBuilt = true;
+}
+
+bool RankBitvector::operator==(const RankBitvector& other) const
+{
+	if (realSize != other.realSize) return false;
+	if (ranksBuilt != other.ranksBuilt) return false;
+	if (values != other.values) return false;
+	return true;
+}
+
+bool RankBitvector::operator!=(const RankBitvector& other) const
+{
+	return !(*this == other);
 }

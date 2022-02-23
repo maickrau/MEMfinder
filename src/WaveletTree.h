@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <vector>
 #include <array>
+#include <iostream>
 #include "RankBitvector.h"
 
 class WaveletTree
@@ -18,6 +19,10 @@ public:
 	size_t rank(size_t index, uint8_t c) const;
 	size_t size() const;
 	size_t charCount(uint8_t c) const;
+	void save(std::ostream& stream) const;
+	void load(std::istream& stream);
+	bool operator==(const WaveletTree& other) const;
+	bool operator!=(const WaveletTree& other) const;
 private:
 	std::array<size_t, 6> counts;
 	RankBitvector layer1;

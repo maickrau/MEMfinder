@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <iostream>
 
 // "Optimized Succinct Data Structures for Massive Data", Simon Gog, Matthias Petri 2014.
 // Section 3: A CACHE FRIENDLY RANK IMPLEMENTATION FOR UNCOMPRESSED BITVECTORS
@@ -19,6 +20,10 @@ public:
 	size_t rankOne(size_t index) const;
 	size_t rankZero(size_t index) const;
 	void clear();
+	void save(std::ostream& stream) const;
+	void load(std::istream& stream);
+	bool operator==(const RankBitvector& other) const;
+	bool operator!=(const RankBitvector& other) const;
 private:
 	std::vector<uint64_t> values;
 	bool ranksBuilt;

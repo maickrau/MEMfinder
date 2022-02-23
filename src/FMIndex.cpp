@@ -2,6 +2,7 @@
 #include <cassert>
 #include "libsais64.h"
 #include "FMIndex.h"
+#include "Serialize.h"
 
 FMIndex::FMIndex() :
 built(false),
@@ -185,4 +186,56 @@ uint8_t FMIndex::get(size_t i) const
 bool FMIndex::initialized() const
 {
 	return built;
+}
+
+void FMIndex::save(std::ostream& stream) const
+{
+	assert(built);
+	for (size_t i = 0; i < 6; i++)
+	{
+		serialize(stream, startIndices[i]);
+	}
+	serialize(stream, sampleRate);
+	tree.save(stream);
+	serialize(stream, lowSample);
+	serialize(stream, lowSampledPositions);
+	serialize(stream, sampledPositions);
+	hasPosition.save(stream);
+}
+
+void FMIndex::load(std::istream& stream)
+{
+	assert(!built);
+	for (size_t i = 0; i < 6; i++)
+	{
+		deserialize(stream, startIndices[i]);
+	}
+	deserialize(stream, sampleRate);
+	tree.load(stream);
+	deserialize(stream, lowSample);
+	deserialize(stream, lowSampledPositions);
+	deserialize(stream, sampledPositions);
+	hasPosition.load(stream);
+	built = true;
+}
+
+bool FMIndex::operator==(const FMIndex& other) const
+{
+	if (built != other.built) return false;
+	for (size_t i = 0; i < 6; i++)
+	{
+		if (startIndices[i] != other.startIndices[i]) return false;
+	}
+	if (sampleRate != other.sampleRate) return false;
+	if (tree != other.tree) return false;
+	if (lowSample != other.lowSample) return false;
+	if (lowSampledPositions != other.lowSampledPositions) return false;
+	if (sampledPositions != other.sampledPositions) return false;
+	if (hasPosition != other.hasPosition) return false;
+	return true;
+}
+
+bool FMIndex::operator!=(const FMIndex& other) const
+{
+	return !(*this == other);
 }

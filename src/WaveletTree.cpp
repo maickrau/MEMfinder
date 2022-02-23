@@ -1,5 +1,6 @@
 #include <cassert>
 #include "WaveletTree.h"
+#include "Serialize.h"
 
 WaveletTree::WaveletTree() :
 counts({0, 0, 0, 0, 0, 0}),
@@ -235,4 +236,47 @@ size_t WaveletTree::charCount(uint8_t c) const
 	assert(built);
 	assert(c <= 5);
 	return counts[c];
+}
+
+void WaveletTree::save(std::ostream& stream) const
+{
+	assert(built);
+	for (size_t i = 0; i < 6; i++)
+	{
+		serialize(stream, counts[i]);
+	}
+	layer1.save(stream);
+	layer2.save(stream);
+	layer3.save(stream);
+}
+
+void WaveletTree::load(std::istream& stream)
+{
+	assert(!built);
+	for (size_t i = 0; i < 6; i++)
+	{
+		deserialize(stream, counts[i]);
+	}
+	layer1.load(stream);
+	layer2.load(stream);
+	layer3.load(stream);
+	built = true;
+}
+
+bool WaveletTree::operator==(const WaveletTree& other) const
+{
+	for (size_t i = 0; i < 6; i++)
+	{
+		if (counts[i] != other.counts[i]) return false;
+	}
+	if (layer1 != other.layer1) return false;
+	if (layer2 != other.layer2) return false;
+	if (layer3 != other.layer3) return false;
+	if (built != other.built) return false;
+	return true;
+}
+
+bool WaveletTree::operator!=(const WaveletTree& other) const
+{
+	return !(*this == other);
 }
