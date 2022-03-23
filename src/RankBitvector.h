@@ -27,7 +27,7 @@ public:
 private:
 	std::vector<uint64_t> values;
 	bool ranksBuilt;
-	size_t realSize;
+	uint64_t realSize;
 };
 
 #endif
