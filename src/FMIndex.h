@@ -29,8 +29,8 @@ public:
 private:
 	uint8_t getNext(size_t i) const;
 	bool built;
-	std::array<size_t, 6> startIndices;
-	size_t sampleRate;
+	std::array<uint64_t, 6> startIndices;
+	uint64_t sampleRate;
 	WaveletTree tree;
 	bool lowSample;
 	std::vector<uint32_t> lowSampledPositions;

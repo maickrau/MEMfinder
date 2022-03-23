@@ -24,7 +24,7 @@ public:
 	bool operator==(const WaveletTree& other) const;
 	bool operator!=(const WaveletTree& other) const;
 private:
-	std::array<size_t, 6> counts;
+	std::array<uint64_t, 6> counts;
 	RankBitvector layer1;
 	RankBitvector layer2;
 	RankBitvector layer3;
