@@ -1,5 +1,6 @@
 #include <string>
 #include <cassert>
+#include <limits>
 #include "libsais64.h"
 #include "FMIndex.h"
 #include "Serialize.h"
