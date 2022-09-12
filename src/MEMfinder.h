@@ -23,6 +23,7 @@ namespace MEMfinder
 		size_t count() const;
 		size_t queryPos() const;
 		size_t matchLength() const;
+		size_t prioritizedMatchLength(const double uniqueBonus) const;
 	private:
 		MatchGroup(size_t matchCount, size_t lowStart, size_t lowEnd, size_t highStart, size_t highEnd, size_t seqPos, size_t matchLen);
 		size_t matchCount;
@@ -41,8 +42,8 @@ namespace MEMfinder
 	};
 
 	uint8_t mapChar(const char);
-	std::vector<Match> getBestMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount);
-	std::vector<Match> getBestFwBwMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount);
+	std::vector<Match> getBestMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount, const double uniqueBonus);
+	std::vector<Match> getBestFwBwMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount, const double uniqueBonus);
 	std::vector<Match> getBestFwBwMUMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount);
 
 	template <typename String, typename F>

@@ -55,7 +55,7 @@ int main(int argc, char** argv)
 	}
 	size_t matchCount = 0;
 	auto preCount = std::chrono::system_clock::now();
-	auto result = MEMfinder::getBestMEMs(index, query, minLength, maxCount);
+	auto result = MEMfinder::getBestMEMs(index, query, minLength, maxCount, 1);
 	auto postCount = std::chrono::system_clock::now();
 	std::cerr << "getting best matches took " << std::chrono::duration_cast<std::chrono::milliseconds>(postCount - preCount).count() << "ms" << std::endl;
 	size_t shortestMatch = std::numeric_limits<size_t>::max();

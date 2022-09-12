@@ -29,6 +29,11 @@ namespace MEMfinder
 		return matchLen;
 	}
 
+	size_t MatchGroup::prioritizedMatchLength(const double uniqueBonus) const
+	{
+		return matchLen * (count() == 1 ? uniqueBonus : 1.0);
+	}
+
 	MatchGroup::MatchGroup(size_t matchCount, size_t lowStart, size_t lowEnd, size_t highStart, size_t highEnd, size_t seqPos, size_t matchLen) :
 	matchCount(matchCount),
 	lowStart(lowStart),
@@ -64,28 +69,37 @@ namespace MEMfinder
 	class MatchGroupComparer
 	{
 	public:
+		MatchGroupComparer() :
+			uniqueBonus(1)
+		{
+		}
+		MatchGroupComparer(size_t uniqueBonus) :
+			uniqueBonus(uniqueBonus)
+		{
+		}
 		bool operator()(const MatchGroup& left, const MatchGroup& right) const
 		{
-			return left.matchLength() > right.matchLength();
+			return left.prioritizedMatchLength(uniqueBonus) > right.prioritizedMatchLength(uniqueBonus);
 		}
+		const size_t uniqueBonus;
 	};
 
 	template <typename String>
-	std::pair<size_t, std::priority_queue<MatchGroup, std::vector<MatchGroup>, MatchGroupComparer>> getBestMatchGroups(const FMIndex& index, const String& seq, const size_t minLen, const size_t maxCount)
+	std::pair<size_t, std::priority_queue<MatchGroup, std::vector<MatchGroup>, MatchGroupComparer>> getBestMatchGroups(const FMIndex& index, const String& seq, const size_t minLen, const size_t maxCount, const double uniqueBonus)
 	{
-		std::priority_queue<MatchGroup, std::vector<MatchGroup>, MatchGroupComparer> chosen;
+		std::priority_queue<MatchGroup, std::vector<MatchGroup>, MatchGroupComparer> chosen { MatchGroupComparer { uniqueBonus } };
 		size_t chosenCount = 0;
 		size_t lengthFloor = minLen;
-		iterateMEMGroups(index, seq, minLen, [maxCount, minLen, &chosenCount, &lengthFloor, &chosen](MatchGroup&& group)
+		iterateMEMGroups(index, seq, minLen, [maxCount, minLen, &chosenCount, &lengthFloor, &chosen, uniqueBonus](MatchGroup&& group)
 		{
 			assert(chosenCount <= maxCount);
-			assert(chosen.size() == 0 || chosen.top().matchLength() >= lengthFloor);
+			assert(chosen.size() == 0 || chosen.top().prioritizedMatchLength(uniqueBonus) >= lengthFloor);
 			assert(group.matchLength() >= minLen);
-			if (group.matchLength() < lengthFloor) return;
+			if (group.prioritizedMatchLength(uniqueBonus) < lengthFloor) return;
 			if (group.count() > maxCount)
 			{
-				lengthFloor = group.matchLength()+1;
-				while (chosen.size() > 0 && chosen.top().matchLength() < lengthFloor)
+				lengthFloor = group.prioritizedMatchLength(uniqueBonus)+1;
+				while (chosen.size() > 0 && chosen.top().prioritizedMatchLength(uniqueBonus) < lengthFloor)
 				{
 					assert(chosenCount >= chosen.top().count());
 					chosenCount -= chosen.top().count();
@@ -100,17 +114,17 @@ namespace MEMfinder
 				return;
 			}
 			assert(chosen.size() > 0);
-			if (group.matchLength() < chosen.top().matchLength())
+			if (group.prioritizedMatchLength(uniqueBonus) < chosen.top().prioritizedMatchLength(uniqueBonus))
 			{
-				assert(lengthFloor <= group.matchLength());
-				lengthFloor = group.matchLength()+1;
-				assert(chosen.top().matchLength() >= lengthFloor);
+				assert(lengthFloor <= group.prioritizedMatchLength(uniqueBonus));
+				lengthFloor = group.prioritizedMatchLength(uniqueBonus)+1;
+				assert(chosen.top().prioritizedMatchLength(uniqueBonus) >= lengthFloor);
 				return;
 			}
-			if (group.matchLength() == chosen.top().matchLength())
+			if (group.prioritizedMatchLength(uniqueBonus) == chosen.top().prioritizedMatchLength(uniqueBonus))
 			{
-				lengthFloor = group.matchLength()+1;
-				while (chosen.size() > 0 && chosen.top().matchLength() < lengthFloor)
+				lengthFloor = group.prioritizedMatchLength(uniqueBonus)+1;
+				while (chosen.size() > 0 && chosen.top().prioritizedMatchLength(uniqueBonus) < lengthFloor)
 				{
 					assert(chosenCount >= chosen.top().count());
 					chosenCount -= chosen.top().count();
@@ -118,15 +132,15 @@ namespace MEMfinder
 				}
 				return;
 			}
-			assert(group.matchLength() > chosen.top().matchLength());
+			assert(group.prioritizedMatchLength(uniqueBonus) > chosen.top().prioritizedMatchLength(uniqueBonus));
 			assert(group.count() + chosenCount > maxCount);
 			chosenCount += group.count();
 			chosen.emplace(group);
 			while (chosenCount > maxCount)
 			{
 				assert(chosen.size() > 0);
-				lengthFloor = chosen.top().matchLength()+1;
-				while (chosen.size() > 0 && chosen.top().matchLength() < lengthFloor)
+				lengthFloor = chosen.top().prioritizedMatchLength(uniqueBonus)+1;
+				while (chosen.size() > 0 && chosen.top().prioritizedMatchLength(uniqueBonus) < lengthFloor)
 				{
 					assert(chosenCount >= chosen.top().count());
 					chosenCount -= chosen.top().count();
@@ -135,13 +149,13 @@ namespace MEMfinder
 			}
 		});
 		assert(chosenCount <= maxCount);
-		assert(chosen.size() == 0 || chosen.top().matchLength() >= lengthFloor);
+		assert(chosen.size() == 0 || chosen.top().prioritizedMatchLength(uniqueBonus) >= lengthFloor);
 		return std::make_pair(chosenCount, chosen);
 	}
 
-	std::vector<Match> getBestMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount)
+	std::vector<Match> getBestMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount, const double uniqueBonus)
 	{
-		auto chosen = getBestMatchGroups(index, seq, minLen, maxCount);
+		auto chosen = getBestMatchGroups(index, seq, minLen, maxCount, uniqueBonus);
 		std::vector<Match> result;
 		result.reserve(chosen.first);
 		while (chosen.second.size() > 0)
@@ -157,26 +171,26 @@ namespace MEMfinder
 		return result;
 	}
 
-	std::vector<Match> getBestFwBwMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount)
+	std::vector<Match> getBestFwBwMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount, const double uniqueBonus)
 	{
-		auto chosenFw = getBestMatchGroups(index, seq, minLen, maxCount);
+		auto chosenFw = getBestMatchGroups(index, seq, minLen, maxCount, uniqueBonus);
 		ReverseComplementView revComp { seq };
-		auto chosenBw = getBestMatchGroups(index, revComp, minLen, maxCount);
+		auto chosenBw = getBestMatchGroups(index, revComp, minLen, maxCount, uniqueBonus);
 		size_t totalChosen = chosenFw.first + chosenBw.first;
 		while (totalChosen > maxCount)
 		{
 			assert(chosenFw.second.size() > 0 || chosenBw.second.size() > 0);
-			size_t floor = seq.size()+1;
-			if (chosenFw.second.size() > 0) floor = std::min(floor, chosenFw.second.top().matchLength());
-			if (chosenBw.second.size() > 0) floor = std::min(floor, chosenBw.second.top().matchLength());
+			size_t floor = seq.size() * uniqueBonus + 1;
+			if (chosenFw.second.size() > 0) floor = std::min(floor, chosenFw.second.top().prioritizedMatchLength(uniqueBonus));
+			if (chosenBw.second.size() > 0) floor = std::min(floor, chosenBw.second.top().prioritizedMatchLength(uniqueBonus));
 			assert(floor > 0);
-			assert(floor < seq.size()+1);
-			while (chosenFw.second.size() > 0 && chosenFw.second.top().matchLength() <= floor)
+			assert(floor < seq.size() * uniqueBonus + 1);
+			while (chosenFw.second.size() > 0 && chosenFw.second.top().prioritizedMatchLength(uniqueBonus) <= floor)
 			{
 				totalChosen -= chosenFw.second.top().count();
 				chosenFw.second.pop();
 			}
-			while (chosenBw.second.size() > 0 && chosenBw.second.top().matchLength() <= floor)
+			while (chosenBw.second.size() > 0 && chosenBw.second.top().prioritizedMatchLength(uniqueBonus) <= floor)
 			{
 				totalChosen -= chosenBw.second.top().count();
 				chosenBw.second.pop();

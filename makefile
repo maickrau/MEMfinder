@@ -57,6 +57,9 @@ $(BINDIR)/test_save: $(ODIR)/test_save.o $(OBJ)
 $(BINDIR)/test_mums: $(ODIR)/test_mums.o $(OBJ)
 	$(GPP) -o $@ $^
 
+$(BINDIR)/test_mem_weighted: $(ODIR)/test_mem_weighted.o $(OBJ)
+	$(GPP) -o $@ $^
+
 $(ODIR)/sais.o: libsais/src/libsais.c
 	$(GPP) -c -o $@ $< $(CPPFLAGS)
 
@@ -66,7 +69,7 @@ $(ODIR)/sais64.o: libsais/src/libsais64.c
 $(ODIR)/%.o: $(SRCDIR)/%.cpp $(DEPS)
 	$(GPP) -c -o $@ $< $(CPPFLAGS)
 
-all: $(LIBDIR)/memfinder.a $(BINDIR)/test_bwt $(BINDIR)/test_wavelet $(BINDIR)/test_fmindex $(BINDIR)/test_count $(BINDIR)/test_mems $(BINDIR)/test_bestmems $(BINDIR)/test_mems_bidi $(BINDIR)/test_bestmems_bidi $(BINDIR)/test_save $(BINDIR)/test_mums
+all: $(LIBDIR)/memfinder.a $(BINDIR)/test_bwt $(BINDIR)/test_wavelet $(BINDIR)/test_fmindex $(BINDIR)/test_count $(BINDIR)/test_mems $(BINDIR)/test_bestmems $(BINDIR)/test_mems_bidi $(BINDIR)/test_bestmems_bidi $(BINDIR)/test_save $(BINDIR)/test_mums $(BINDIR)/test_mem_weighted
 
 clean:
 	rm -f $(ODIR)/*
