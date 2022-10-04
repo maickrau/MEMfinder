@@ -4,6 +4,7 @@
 #include "libsais64.h"
 #include "FMIndex.h"
 #include "Serialize.h"
+#include "PartSortBWT.h"
 
 FMIndex::FMIndex() :
 built(false),
@@ -16,7 +17,7 @@ hasPosition()
 {
 }
 
-FMIndex::FMIndex(std::string&& seq, const size_t sampleRate) :
+FMIndex::FMIndex(std::string&& seq, const size_t sampleRate, const bool lowMemoryConstruction) :
 built(false),
 sampleRate(0),
 tree(),
@@ -25,7 +26,14 @@ lowSampledPositions(),
 sampledPositions(),
 hasPosition()
 {
-	initialize(std::move(seq), sampleRate);
+	if (lowMemoryConstruction)
+	{
+		initializeLowMemory(std::move(seq), sampleRate);
+	}
+	else
+	{
+		initialize(std::move(seq), sampleRate);
+	}
 }
 
 void FMIndex::initialize(std::string&& seq, const size_t sampleRate)
@@ -107,6 +115,103 @@ void FMIndex::initialize(std::string&& seq, const size_t sampleRate)
 	hasPosition.buildRanks();
 	assert(lowSample || sampledPositions.size() == hasPosition.rankOne(hasPosition.size()));
 	assert(!lowSample || lowSampledPositions.size() == hasPosition.rankOne(hasPosition.size()));
+	built = true;
+}
+
+void FMIndex::initializeLowMemory(std::string&& seq, const size_t sampleRate)
+{
+	for (size_t i = 0; i < seq.size()-1; i++)
+	{
+		assert(seq[i] <= 5);
+		assert(seq[i] >= 1);
+	}
+	assert(seq[seq.size()-1] == 0);
+	initializeFromBWT(partSortBWT(std::move(seq)), sampleRate);
+}
+
+void FMIndex::initializeFromBWT(std::string&& bwt, const size_t sampleRate)
+{
+	assert(!built);
+	lowSample = (size_t)((bwt.size() + sampleRate - 1) / sampleRate) < (size_t)std::numeric_limits<uint32_t>::max();
+	if (lowSample)
+	{
+		lowSampledPositions.reserve((bwt.size() + sampleRate - 1) / sampleRate);
+	}
+	else
+	{
+		sampledPositions.reserve((bwt.size() + sampleRate - 1) / sampleRate);
+	}
+	tree.initialize(bwt);
+	assert(tree.size() == bwt.size());
+	{
+		std::string tmp;
+		std::swap(tmp, bwt);
+	}
+	hasPosition.resize(tree.size());
+	this->sampleRate = sampleRate;
+	assert(sampleRate >= 1);
+	assert(sampleRate < tree.size());
+	startIndices[0] = 0;
+	startIndices[1] = tree.charCount(0);
+	startIndices[2] = tree.charCount(1) + startIndices[1];
+	startIndices[3] = tree.charCount(2) + startIndices[2];
+	startIndices[4] = tree.charCount(3) + startIndices[3];
+	startIndices[5] = tree.charCount(4) + startIndices[4];
+	assert(startIndices[5] < size());
+	size_t index = 0;
+	for (size_t i = 0; i < tree.size(); i++)
+	{
+		assert(hasPosition.get(index) == false);
+		size_t seqPos = (2*tree.size()-2-i) % tree.size();
+		if (seqPos % sampleRate == 0)
+		{
+			hasPosition.set(index, true);
+		}
+		index = advance(index, tree.get(index));
+	}
+	hasPosition.buildRanks();
+	assert(hasPosition.rankOne(hasPosition.size()) == ((tree.size() + sampleRate - 1) / sampleRate));
+	if (lowSample)
+	{
+		lowSampledPositions.resize(hasPosition.rankOne(hasPosition.size()), std::numeric_limits<uint32_t>::max());
+	}
+	else
+	{
+		sampledPositions.resize(hasPosition.rankOne(hasPosition.size()), std::numeric_limits<size_t>::max());
+	}
+	index = 0;
+	for (size_t i = 0; i < tree.size(); i++)
+	{
+		size_t seqPos = (2*tree.size()-2-i) % tree.size();
+		if (seqPos % sampleRate == 0)
+		{
+			assert(hasPosition.get(index) == true);
+			size_t samplePos = hasPosition.rankOne(index);
+			if (lowSample)
+			{
+				assert(lowSampledPositions[samplePos] == std::numeric_limits<uint32_t>::max());
+				lowSampledPositions[samplePos] = seqPos / sampleRate;
+			}
+			else
+			{
+				assert(sampledPositions[samplePos] == std::numeric_limits<size_t>::max());
+				sampledPositions[samplePos] = seqPos / sampleRate;
+			}
+		}
+		else
+		{
+			assert(hasPosition.get(index) == false);
+		}
+		index = advance(index, tree.get(index));
+	}
+	for (size_t i = 0; i < lowSampledPositions.size(); i++)
+	{
+		assert(lowSampledPositions[i] != std::numeric_limits<uint32_t>::max());
+	}
+	for (size_t i = 0; i < sampledPositions.size(); i++)
+	{
+		assert(sampledPositions[i] != std::numeric_limits<size_t>::max());
+	}
 	built = true;
 }
 

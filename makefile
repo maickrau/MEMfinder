@@ -8,10 +8,10 @@ SRCDIR=src
 
 LIBS=
 
-_DEPS = RankBitvector.h WaveletTree.h FMIndex.h MEMfinder.h ReverseComplementView.h Serialize.h
+_DEPS = RankBitvector.h WaveletTree.h FMIndex.h MEMfinder.h ReverseComplementView.h Serialize.h PartSortBWT.h
 DEPS = $(patsubst %, $(SRCDIR)/%, $(_DEPS))
 
-_OBJ = RankBitvector.o WaveletTree.o FMIndex.o MEMfinder.o ReverseComplementView.o Serialize.o
+_OBJ = RankBitvector.o WaveletTree.o FMIndex.o MEMfinder.o ReverseComplementView.o Serialize.o PartSortBWT.o
 OBJ = $(patsubst %, $(ODIR)/%, $(_OBJ)) $(ODIR)/sais.o $(ODIR)/sais64.o
 
 LINKFLAGS = $(CPPFLAGS) -static-libstdc++
@@ -60,6 +60,15 @@ $(BINDIR)/test_mums: $(ODIR)/test_mums.o $(OBJ)
 $(BINDIR)/test_mem_weighted: $(ODIR)/test_mem_weighted.o $(OBJ)
 	$(GPP) -o $@ $^
 
+$(BINDIR)/test_bwt_partsort: $(ODIR)/test_bwt_partsort.o $(OBJ)
+	$(GPP) -o $@ $^
+
+$(BINDIR)/test_fmindex_lowmemory: $(ODIR)/test_fmindex_lowmemory.o $(OBJ)
+	$(GPP) -o $@ $^
+
+$(BINDIR)/test_fmindex_memory_match: $(ODIR)/test_fmindex_memory_match.o $(OBJ)
+	$(GPP) -o $@ $^
+
 $(ODIR)/sais.o: libsais/src/libsais.c
 	$(GPP) -c -o $@ $< $(CPPFLAGS)
 
@@ -69,7 +78,7 @@ $(ODIR)/sais64.o: libsais/src/libsais64.c
 $(ODIR)/%.o: $(SRCDIR)/%.cpp $(DEPS)
 	$(GPP) -c -o $@ $< $(CPPFLAGS)
 
-all: $(LIBDIR)/memfinder.a $(BINDIR)/test_bwt $(BINDIR)/test_wavelet $(BINDIR)/test_fmindex $(BINDIR)/test_count $(BINDIR)/test_mems $(BINDIR)/test_bestmems $(BINDIR)/test_mems_bidi $(BINDIR)/test_bestmems_bidi $(BINDIR)/test_save $(BINDIR)/test_mums $(BINDIR)/test_mem_weighted
+all: $(LIBDIR)/memfinder.a $(BINDIR)/test_bwt $(BINDIR)/test_wavelet $(BINDIR)/test_fmindex $(BINDIR)/test_count $(BINDIR)/test_mems $(BINDIR)/test_bestmems $(BINDIR)/test_mems_bidi $(BINDIR)/test_bestmems_bidi $(BINDIR)/test_save $(BINDIR)/test_mums $(BINDIR)/test_mem_weighted $(BINDIR)/test_bwt_partsort $(BINDIR)/test_fmindex_lowmemory $(BINDIR)/test_fmindex_memory_match
 
 clean:
 	rm -f $(ODIR)/*

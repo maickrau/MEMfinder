@@ -12,9 +12,10 @@ class FMIndex
 {
 public:
 	FMIndex();
-	FMIndex(std::string&& seq, const size_t sampleRate);
+	FMIndex(std::string&& seq, const size_t sampleRate, const bool lowMemoryConstruction = false);
 	std::pair<size_t, size_t> advance(size_t start, size_t end, uint8_t c) const;
 	void initialize(std::string&& seq, const size_t sampleRate);
+	void initializeLowMemory(std::string&& seq, const size_t sampleRate);
 	size_t size() const;
 	size_t charCount(uint8_t c) const;
 	size_t charStart(uint8_t c) const;
@@ -27,6 +28,7 @@ public:
 	bool operator==(const FMIndex& other) const;
 	bool operator!=(const FMIndex& other) const;
 private:
+	void initializeFromBWT(std::string&& bwt, const size_t sampleRate);
 	uint8_t getNext(size_t i) const;
 	bool built;
 	std::array<uint64_t, 6> startIndices;
