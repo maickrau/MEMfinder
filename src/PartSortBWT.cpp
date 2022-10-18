@@ -4,10 +4,10 @@
 #include <algorithm>
 #include "PartSortBWT.h"
 
-const size_t PREFIX_LENGTH = 3;
+const size_t PREFIX_LENGTH = 4;
 const size_t ALPHABET_SIZE = 8;
 constexpr size_t MAX_PREFIX = pow(ALPHABET_SIZE, PREFIX_LENGTH);
-constexpr size_t MASK = MAX_PREFIX-1;
+constexpr uint64_t MASK = MAX_PREFIX-1;
 
 template <int length, typename F>
 void iteratePrefixSuffixes(const std::vector<uint64_t>& bitseq, const size_t realSize, F callback)
@@ -53,7 +53,7 @@ uint8_t getChar(const std::vector<uint64_t>& bitseq, const size_t realSize, size
 	return result;
 }
 
-size_t getChunk(const std::vector<uint64_t>& bitseq, const size_t realSize, size_t i)
+uint64_t getChunk(const std::vector<uint64_t>& bitseq, const size_t realSize, size_t i)
 {
 	i = i % realSize;
 	size_t chunk = i/21;
@@ -62,19 +62,19 @@ size_t getChunk(const std::vector<uint64_t>& bitseq, const size_t realSize, size
 	{
 		return bitseq[chunk];
 	}
-	size_t high = (bitseq[chunk] << (offset*3 + 1)) >> 1; // +1 and -1 to handle the extra 64th bit
-	size_t low = bitseq[chunk+1] >> ((21 - offset)*3);
+	uint64_t high = (bitseq[chunk] << (offset*3 + 1)) >> 1; // +1 and -1 to handle the extra 64th bit
+	uint64_t low = bitseq[chunk+1] >> ((21 - offset)*3);
 	return low + high;
 }
 
-void chunkRadixSortSuffixesInPlace(const std::vector<uint64_t>& bitseq, const size_t realSize, std::vector<std::pair<size_t, size_t>>& positions, size_t offset, const size_t vecStart, const size_t vecEnd)
+void chunkRadixSortSuffixesInPlace(const std::vector<uint64_t>& bitseq, const size_t realSize, std::vector<std::pair<size_t, uint64_t>>& positions, size_t offset, const size_t vecStart, const size_t vecEnd)
 {
 	if (vecEnd - vecStart < 2) return;
 	for (size_t i = vecStart; i < vecEnd; i++)
 	{
 		positions[i].second = getChunk(bitseq, realSize, positions[i].first+offset);
 	}
-	std::sort(positions.begin()+vecStart, positions.begin()+vecEnd, [](std::pair<size_t, size_t> left, std::pair<size_t, size_t> right) { return left.second < right.second; });
+	std::sort(positions.begin()+vecStart, positions.begin()+vecEnd, [](std::pair<size_t, uint64_t> left, std::pair<size_t, uint64_t> right) { return left.second < right.second; });
 	size_t start = vecStart;
 	for (size_t i = vecStart+1; i < vecEnd; i++)
 	{
@@ -90,16 +90,16 @@ void chunkRadixSortSuffixesInPlace(const std::vector<uint64_t>& bitseq, const si
 	}
 }
 
-size_t sortSuffixesWithPrefix(const std::vector<uint64_t>& bitseq, const size_t realSize, std::string& bwt, const size_t refPrefix, const size_t suffixCount, const size_t doneAlready, std::vector<std::pair<size_t, size_t>>& positions)
+size_t sortSuffixesWithPrefix(const std::vector<uint64_t>& bitseq, const size_t realSize, std::string& bwt, const uint64_t refPrefix, const size_t suffixCount, const size_t doneAlready, std::vector<std::pair<size_t, uint64_t>>& positions)
 {
 	assert(positions.capacity() >= suffixCount);
-	iteratePrefixSuffixes<PREFIX_LENGTH>(bitseq, realSize, [refPrefix, &positions, &bitseq, realSize](size_t prefix, size_t pos)
+	iteratePrefixSuffixes<PREFIX_LENGTH>(bitseq, realSize, [refPrefix, &positions, &bitseq, realSize](uint64_t prefix, size_t pos)
 	{
 		if (prefix != refPrefix) return;
-		size_t suffixPrefix = getChunk(bitseq, realSize, pos+PREFIX_LENGTH);
+		uint64_t suffixPrefix = getChunk(bitseq, realSize, pos+PREFIX_LENGTH);
 		positions.emplace_back(pos, suffixPrefix);
 	});
-	std::sort(positions.begin(), positions.end(), [](std::pair<size_t, size_t> left, std::pair<size_t, size_t> right) { return left.second < right.second; });
+	std::sort(positions.begin(), positions.end(), [](std::pair<size_t, uint64_t> left, std::pair<size_t, uint64_t> right) { return left.second < right.second; });
 	size_t start = 0;
 	for (size_t i = 1; i < positions.size(); i++)
 	{
@@ -135,81 +135,55 @@ size_t sortSuffixesWithPrefix(const std::vector<uint64_t>& bitseq, const size_t 
 	return positions.size();
 }
 
-std::string partSortBWT(const std::vector<uint64_t>& bitseq, const size_t realSize)
+void partSortBWT(std::string& result, const std::vector<uint64_t>& bitseq, const size_t realSize)
 {
-	std::string result;
-	result.resize(realSize, 7);
+	result.assign(realSize, 7);
 	size_t doneCount = 0;
 	std::vector<size_t> prefixCount;
 	prefixCount.resize(MAX_PREFIX, 0);
 	size_t counted = 0;
-	iteratePrefixSuffixes<PREFIX_LENGTH>(bitseq, realSize, [&counted, &prefixCount](size_t prefix, size_t pos)
+	iteratePrefixSuffixes<PREFIX_LENGTH>(bitseq, realSize, [&counted, &prefixCount](uint64_t prefix, size_t pos)
 	{
 		prefixCount[prefix] += 1;
 		counted += 1;
 	});
 	assert(counted == realSize);
-	std::vector<std::pair<size_t, size_t>> tmpData;
+	std::vector<std::pair<size_t, uint64_t>> tmpData;
 	size_t maxCount = 0;
 	for (size_t i = 0; i < MAX_PREFIX; i++)
 	{
 		maxCount = std::max(maxCount, prefixCount[i]);
 	}
 	tmpData.reserve(maxCount);
-	for (size_t i = 0; i < MAX_PREFIX; i++)
+	for (uint64_t i = 0; i < MAX_PREFIX; i++)
 	{
 		if (prefixCount[i] == 0) continue;
-		size_t prefix = i;
+		uint64_t prefix = i;
 		size_t sorted = sortSuffixesWithPrefix(bitseq, realSize, result, prefix, prefixCount[i], doneCount, tmpData);
 		tmpData.resize(0);
 		doneCount += sorted;
 		assert(sorted == prefixCount[i]);
 	}
 	assert(doneCount == realSize);
-	return result;
 }
 
-std::string partSortBWT(const std::string& seq)
+void partSortBWT(const std::string& input, std::string& output)
 {
-	for (size_t i = 0; i < seq.size(); i++)
+	for (size_t i = 0; i < input.size(); i++)
 	{
-		assert(seq[i] <= 5);
-		assert(seq[i] >= 1 || (i == seq.size()-1 && seq[i] == 0));
+		assert(input[i] <= 5);
+		assert(input[i] >= 1 || (i == input.size()-1 && input[i] == 0));
 	}
 	std::vector<uint64_t> bitseq;
-	bitseq.resize(seq.size() / 21 + 2);
+	bitseq.resize(input.size() / 21 + 2);
 	for (size_t i = 0; i < bitseq.size(); i++)
 	{
 		for (size_t j = 0; j < 21; j++)
 		{
 			bitseq[i] <<= 3;
-			bitseq[i] += seq[(i*21+j) % seq.size()];
+			bitseq[i] += input[(i*21+j) % input.size()];
 		}
 	}
-	return partSortBWT(bitseq, seq.size());
-}
-
-std::string partSortBWT(std::string&& seq)
-{
-	for (size_t i = 0; i < seq.size(); i++)
-	{
-		assert(seq[i] <= 5);
-		assert(seq[i] >= 1 || (i == seq.size()-1 && seq[i] == 0));
-	}
-	std::vector<uint64_t> bitseq;
-	bitseq.resize(seq.size() / 21 + 2);
-	for (size_t i = 0; i < bitseq.size(); i++)
-	{
-		for (size_t j = 0; j < 21; j++)
-		{
-			bitseq[i] <<= 3;
-			bitseq[i] += seq[(i*21+j) % seq.size()];
-		}
-	}
-	size_t realSize = seq.size();
-	{
-		std::string tmp;
-		std::swap(tmp, seq);
-	}
-	return partSortBWT(bitseq, realSize);
+	size_t realSize = input.size();
+	partSortBWT(output, bitseq, realSize);
 }

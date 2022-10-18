@@ -34,10 +34,10 @@ int main(int argc, char** argv)
 	}
 	seq.push_back(0);
 	std::cerr << "size " << seq.size() << std::endl;
-	std::string bwt = partSortBWT(std::move(seq));
-	for (size_t i = 0; i < bwt.size(); i++)
+	partSortBWT(seq, seq);
+	for (size_t i = 0; i < seq.size(); i++)
 	{
-		std::cout << "$_ACGT"[bwt[i]];
+		std::cout << "$_ACGT"[seq[i]];
 	}
 	std::cout << std::endl;
 }

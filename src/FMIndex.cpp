@@ -126,7 +126,8 @@ void FMIndex::initializeLowMemory(std::string&& seq, const size_t sampleRate)
 		assert(seq[i] >= 1);
 	}
 	assert(seq[seq.size()-1] == 0);
-	initializeFromBWT(partSortBWT(std::move(seq)), sampleRate);
+	partSortBWT(seq, seq);
+	initializeFromBWT(std::move(seq), sampleRate);
 }
 
 void FMIndex::initializeFromBWT(std::string&& bwt, const size_t sampleRate)
