@@ -1,3 +1,6 @@
 [submodule "libsais"]
 	path = libsais
 	url = https://github.com/IlyaGrebnov/libsais.git
+[submodule "PartSortBWT"]
+	path = PartSortBWT
+	url = https://github.com/maickrau/PartSortBWT.git

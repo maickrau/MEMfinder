@@ -1,5 +1,5 @@
 GPP=$(CXX)
-CPPFLAGS=-Wall -Wextra -std=c++17 -O3 -g -Ilibsais/src
+CPPFLAGS=-Wall -Wextra -std=c++17 -O3 -g -Ilibsais/src -IPartSortBWT/src
 
 ODIR=obj
 BINDIR=bin
@@ -8,11 +8,11 @@ SRCDIR=src
 
 LIBS=
 
-_DEPS = RankBitvector.h WaveletTree.h FMIndex.h MEMfinder.h ReverseComplementView.h Serialize.h PartSortBWT.h
+_DEPS = RankBitvector.h WaveletTree.h FMIndex.h MEMfinder.h ReverseComplementView.h Serialize.h
 DEPS = $(patsubst %, $(SRCDIR)/%, $(_DEPS))
 
-_OBJ = RankBitvector.o WaveletTree.o FMIndex.o MEMfinder.o ReverseComplementView.o Serialize.o PartSortBWT.o
-OBJ = $(patsubst %, $(ODIR)/%, $(_OBJ)) $(ODIR)/sais.o $(ODIR)/sais64.o
+_OBJ = RankBitvector.o WaveletTree.o FMIndex.o MEMfinder.o ReverseComplementView.o Serialize.o
+OBJ = $(patsubst %, $(ODIR)/%, $(_OBJ)) $(ODIR)/sais.o $(ODIR)/sais64.o $(ODIR)/PartSortBWT.o
 
 LINKFLAGS = $(CPPFLAGS) -static-libstdc++
 
@@ -68,6 +68,9 @@ $(BINDIR)/test_fmindex_lowmemory: $(ODIR)/test_fmindex_lowmemory.o $(OBJ)
 
 $(BINDIR)/test_fmindex_memory_match: $(ODIR)/test_fmindex_memory_match.o $(OBJ)
 	$(GPP) -o $@ $^
+
+$(ODIR)/PartSortBWT.o: PartSortBWT/src/PartSortBWT.cpp
+	$(GPP) -c -o $@ $< $(CPPFLAGS)
 
 $(ODIR)/sais.o: libsais/src/libsais.c
 	$(GPP) -c -o $@ $< $(CPPFLAGS)
