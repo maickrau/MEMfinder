@@ -91,7 +91,7 @@ namespace MEMfinder
 	template <typename String, typename F>
 	void iterateMEMGroups(const FMIndex& index, const String& seq, const size_t minLen, const std::vector<std::pair<size_t, size_t>>& prefixIndex, const size_t prefixLen, F callback)
 	{
-		assert(minLen >= prefixLen);
+		assert(minLen >= prefixLen+1);
 		assert(minLen >= 2);
 		size_t lastLow = 0;
 		size_t lastHigh = 0;
@@ -105,8 +105,8 @@ namespace MEMfinder
 				prefix = std::numeric_limits<size_t>::max();
 				continue;
 			}
-			size_t low;
-			size_t high;
+			size_t low = 0;
+			size_t high = index.size();
 			if (prefixLen > 0)
 			{
 				if (prefix == std::numeric_limits<size_t>::max())
@@ -118,6 +118,8 @@ namespace MEMfinder
 						{
 							prefix = std::numeric_limits<size_t>::max();
 							end -= i;
+							lastLow = 0;
+							lastHigh = 0;
 							break;
 						}
 						prefix += (uint64_t)(mapChar(seq[end-i])-2) << (uint64_t)(prefixLen * 2);
@@ -131,18 +133,16 @@ namespace MEMfinder
 					{
 						end = end-prefixLen+1;
 						prefix = std::numeric_limits<size_t>::max();
+						lastLow = 0;
+						lastHigh = 0;
 						continue;
 					}
 					prefix += (uint64_t)(mapChar(seq[end-prefixLen+1])-2) << (uint64_t)(prefixLen * 2);
 					prefix >>= 2;
 				}
+				assert(prefix < prefixIndex.size());
 				low = prefixIndex[prefix].first;
 				high = prefixIndex[prefix].second;
-			}
-			else
-			{
-				low = 0;
-				high = index.size();
 			}
 			for (size_t i = prefixLen; i < minLen-1; i++)
 			{
