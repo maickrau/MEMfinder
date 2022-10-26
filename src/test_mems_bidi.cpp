@@ -75,8 +75,8 @@ int main(int argc, char** argv)
 	std::vector<std::set<std::pair<size_t, size_t>>> bwmatches;
 	size_t shortestMatch = std::numeric_limits<size_t>::max();
 	size_t longestMatch = 0;
-	fwmatches.resize(seq.size());
-	bwmatches.resize(seq.size());
+	fwmatches.resize(query.size());
+	bwmatches.resize(query.size());
 	for (auto match : result)
 	{
 		shortestMatch = std::min(shortestMatch, match.length);

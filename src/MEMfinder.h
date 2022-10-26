@@ -41,8 +41,10 @@ namespace MEMfinder
 		friend void iterateMEMs(const FMIndex&, const String&, const MatchGroup&, F);
 	};
 
+	std::vector<std::pair<size_t, size_t>> buildPrefixIndex(const FMIndex& index, const size_t len);
 	uint8_t mapChar(const char);
 	std::vector<Match> getBestMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount, const double uniqueBonus);
+	std::vector<Match> getBestFwBwMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount, const double uniqueBonus, const std::vector<std::pair<size_t, size_t>>& prefixIndex, const size_t prefixLen);
 	std::vector<Match> getBestFwBwMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount, const double uniqueBonus);
 	std::vector<Match> getBestFwBwMUMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount);
 
@@ -87,22 +89,62 @@ namespace MEMfinder
 	}
 
 	template <typename String, typename F>
-	void iterateMEMGroups(const FMIndex& index, const String& seq, const size_t minLen, F callback)
+	void iterateMEMGroups(const FMIndex& index, const String& seq, const size_t minLen, const std::vector<std::pair<size_t, size_t>>& prefixIndex, const size_t prefixLen, F callback)
 	{
+		assert(minLen >= prefixLen);
 		assert(minLen >= 2);
 		size_t lastLow = 0;
 		size_t lastHigh = 0;
+		uint64_t prefix = std::numeric_limits<size_t>::max();
 		for (size_t end = seq.size()-1; end >= minLen-1; end--)
 		{
 			if (mapChar(seq[end]) == 0)
 			{
 				lastLow = 0;
 				lastHigh = 0;
+				prefix = std::numeric_limits<size_t>::max();
 				continue;
 			}
-			size_t low = 0;
-			size_t high = index.size();
-			for (size_t i = 0; i < minLen-1; i++)
+			size_t low;
+			size_t high;
+			if (prefixLen > 0)
+			{
+				if (prefix == std::numeric_limits<size_t>::max())
+				{
+					prefix = 0;
+					for (size_t i = 0; i < prefixLen; i++)
+					{
+						if (mapChar(seq[end-i]) == 0)
+						{
+							prefix = std::numeric_limits<size_t>::max();
+							end -= i;
+							break;
+						}
+						prefix += (uint64_t)(mapChar(seq[end-i])-2) << (uint64_t)(prefixLen * 2);
+						prefix >>= 2;
+					}
+					if (prefix == std::numeric_limits<size_t>::max()) continue;
+				}
+				else
+				{
+					if (mapChar[seq[end-prefixLen+1]] == 0)
+					{
+						end = end-prefixLen+1;
+						prefix = std::numeric_limits<size_t>::max();
+						continue;
+					}
+					prefix += (uint64_t)(mapChar(seq[end-prefixLen+1])-2) << (uint64_t)(prefixLen * 2);
+					prefix >>= 2;
+				}
+				low = prefixIndex[prefix].first;
+				high = prefixIndex[prefix].second;
+			}
+			else
+			{
+				low = 0;
+				high = index.size();
+			}
+			for (size_t i = prefixLen; i < minLen-1; i++)
 			{
 				size_t c = mapChar(seq[end-i]);
 				low = index.advance(low, c);
@@ -140,6 +182,12 @@ namespace MEMfinder
 			lastLow = low;
 			lastHigh = high;
 		}
+	}
+
+	template <typename String, typename F>
+	void iterateMEMGroups(const FMIndex& index, const String& seq, const size_t minLen, F callback)
+	{
+		iterateMEMGroups(index, seq, minLen, std::vector<std::pair<size_t, size_t>> {}, 0, callback);
 	}
 
 	template <typename String, typename F>

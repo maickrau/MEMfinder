@@ -1,3 +1,5 @@
+#include <tuple>
+#include <cmath>
 #include <queue>
 #include <algorithm>
 #include "FMIndex.h"
@@ -85,12 +87,12 @@ namespace MEMfinder
 	};
 
 	template <typename String>
-	std::pair<size_t, std::priority_queue<MatchGroup, std::vector<MatchGroup>, MatchGroupComparer>> getBestMatchGroups(const FMIndex& index, const String& seq, const size_t minLen, const size_t maxCount, const double uniqueBonus)
+	std::pair<size_t, std::priority_queue<MatchGroup, std::vector<MatchGroup>, MatchGroupComparer>> getBestMatchGroups(const FMIndex& index, const String& seq, const size_t minLen, const size_t maxCount, const double uniqueBonus, const std::vector<std::pair<size_t, size_t>>& prefixIndex, const size_t prefixLen)
 	{
 		std::priority_queue<MatchGroup, std::vector<MatchGroup>, MatchGroupComparer> chosen { MatchGroupComparer { uniqueBonus } };
 		size_t chosenCount = 0;
 		size_t lengthFloor = minLen;
-		iterateMEMGroups(index, seq, minLen, [maxCount, minLen, &chosenCount, &lengthFloor, &chosen, uniqueBonus](MatchGroup&& group)
+		iterateMEMGroups(index, seq, minLen, prefixIndex, prefixLen, [maxCount, minLen, &chosenCount, &lengthFloor, &chosen, uniqueBonus](MatchGroup&& group)
 		{
 			assert(chosenCount <= maxCount);
 			assert(chosen.size() == 0 || chosen.top().prioritizedMatchLength(uniqueBonus) >= lengthFloor);
@@ -155,7 +157,7 @@ namespace MEMfinder
 
 	std::vector<Match> getBestMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount, const double uniqueBonus)
 	{
-		auto chosen = getBestMatchGroups(index, seq, minLen, maxCount, uniqueBonus);
+		auto chosen = getBestMatchGroups(index, seq, minLen, maxCount, uniqueBonus, std::vector<std::pair<size_t, size_t>>{}, 0);
 		std::vector<Match> result;
 		result.reserve(chosen.first);
 		while (chosen.second.size() > 0)
@@ -173,9 +175,15 @@ namespace MEMfinder
 
 	std::vector<Match> getBestFwBwMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount, const double uniqueBonus)
 	{
-		auto chosenFw = getBestMatchGroups(index, seq, minLen, maxCount, uniqueBonus);
+		std::vector<std::pair<size_t, size_t>> fakePrefixIndex;
+		return getBestFwBwMEMs(index, seq, minLen, maxCount, uniqueBonus, fakePrefixIndex, 0);
+	}
+
+	std::vector<Match> getBestFwBwMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount, const double uniqueBonus, const std::vector<std::pair<size_t, size_t>>& prefixIndex, const size_t prefixLen)
+	{
+		auto chosenFw = getBestMatchGroups(index, seq, minLen, maxCount, uniqueBonus, prefixIndex, prefixLen);
 		ReverseComplementView revComp { seq };
-		auto chosenBw = getBestMatchGroups(index, revComp, minLen, maxCount, uniqueBonus);
+		auto chosenBw = getBestMatchGroups(index, revComp, minLen, maxCount, uniqueBonus, prefixIndex, prefixLen);
 		size_t totalChosen = chosenFw.first + chosenBw.first;
 		while (totalChosen > maxCount)
 		{
@@ -307,6 +315,26 @@ namespace MEMfinder
 			});
 		}
 		return mums;
+	}
+
+	std::vector<std::pair<size_t, size_t>> buildPrefixIndex(const FMIndex& index, const size_t len)
+	{
+		std::vector<std::pair<size_t, size_t>> result;
+		result.resize(pow(4, len));
+		for (size_t i = 0; i < result.size(); i++)
+		{
+			uint64_t kmer = i;
+			size_t start = 0;
+			size_t end = index.size();
+			for (size_t j = 0; j < len; j++)
+			{
+				std::tie(start, end) = index.advance(start, end, (kmer & 3) + 2);
+				kmer >>= 2;
+			}
+			result[i].first = start;
+			result[i].second = end;
+		}
+		return result;
 	}
 
 }
