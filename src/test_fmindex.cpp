@@ -12,6 +12,7 @@ int main(int argc, char** argv)
 		std::ifstream file { argv[1] };
 		getline(file, seq);
 	}
+	bool useWaveletTree = std::stoi(argv[3]);
 	for (size_t i = 0; i < seq.size(); i++)
 	{
 		switch(seq[i])
@@ -38,7 +39,7 @@ int main(int argc, char** argv)
 		}
 	}
 	seq.push_back(0);
-	FMIndex index { std::move(seq), sampleRate };
+	FMIndex index { std::move(seq), sampleRate, true, useWaveletTree };
 	// std::string tmp;
 	// std::cout << "done" << std::endl;
 	// getline(std::cin, tmp);
