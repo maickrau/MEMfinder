@@ -1,5 +1,5 @@
 GPP=$(CXX)
-CPPFLAGS=-Wall -Wextra -std=c++17 -O3 -g -Ilibsais/src -IPartSortBWT/src
+CPPFLAGS=-Wall -Wextra -std=c++17 -O3 -g -Ilibsais/src -IPartSortBWT/src $(DEBUGFLAG)
 
 ODIR=obj
 BINDIR=bin
