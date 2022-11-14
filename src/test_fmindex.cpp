@@ -39,7 +39,8 @@ int main(int argc, char** argv)
 		}
 	}
 	seq.push_back(0);
-	FMIndex index { std::move(seq), sampleRate, true, useWaveletTree };
+	std::string copy { seq };
+	FMIndex index { std::move(copy), sampleRate, true, useWaveletTree };
 	// std::string tmp;
 	// std::cout << "done" << std::endl;
 	// getline(std::cin, tmp);
