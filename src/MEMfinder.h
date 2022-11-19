@@ -24,6 +24,8 @@ namespace MEMfinder
 		size_t queryPos() const;
 		size_t matchLength() const;
 		size_t prioritizedMatchLength(const double uniqueBonus) const;
+		bool operator<(const MatchGroup& other) const;
+		bool operator==(const MatchGroup& other) const;
 	private:
 		MatchGroup(size_t matchCount, size_t lowStart, size_t lowEnd, size_t highStart, size_t highEnd, size_t seqPos, size_t matchLen);
 		size_t matchCount;
@@ -44,7 +46,8 @@ namespace MEMfinder
 	std::vector<std::pair<size_t, size_t>> buildPrefixIndex(const FMIndex& index, const size_t len);
 	uint8_t mapChar(const char);
 	std::vector<Match> getBestMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount, const double uniqueBonus);
-	std::vector<Match> getBestFwBwMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount, const double uniqueBonus, const std::vector<std::pair<size_t, size_t>>& prefixIndex, const size_t prefixLen);
+	std::vector<Match> getBestFwBwMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount, const double uniqueBonus, const std::vector<std::pair<size_t, size_t>>& prefixIndex, const size_t prefixLen, const size_t windowSize);
+	std::vector<Match> getBestFwBwMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount, const double uniqueBonus, const size_t windowSize);
 	std::vector<Match> getBestFwBwMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount, const double uniqueBonus);
 	std::vector<Match> getBestFwBwMUMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount);
 

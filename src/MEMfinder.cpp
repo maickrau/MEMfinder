@@ -5,6 +5,7 @@
 #include "FMIndex.h"
 #include "MEMfinder.h"
 #include "ReverseComplementView.h"
+#include <set>
 
 namespace MEMfinder
 {
@@ -14,6 +15,30 @@ namespace MEMfinder
 	length(length),
 	fw(fw)
 	{
+	}
+
+	bool MatchGroup::operator==(const MatchGroup& other) const
+	{
+		return matchCount == other.matchCount && lowStart == other.lowStart && lowEnd == other.lowEnd && highStart == other.highStart && highEnd == other.highEnd && seqPos == other.seqPos && matchLen == other.matchLen;
+	}
+
+	bool MatchGroup::operator<(const MatchGroup& other) const
+	{
+		if (matchCount < other.matchCount) return true;
+		if (matchCount > other.matchCount) return false;
+		if (lowStart < other.lowStart) return true;
+		if (lowStart > other.lowStart) return false;
+		if (lowEnd < other.lowEnd) return true;
+		if (lowEnd > other.lowEnd) return false;
+		if (highStart < other.highStart) return true;
+		if (highStart > other.highStart) return false;
+		if (highEnd < other.highEnd) return true;
+		if (highEnd > other.highEnd) return false;
+		if (seqPos < other.seqPos) return true;
+		if (seqPos > other.seqPos) return false;
+		if (matchLen < other.matchLen) return true;
+		if (matchLen > other.matchLen) return false;
+		return false;
 	}
 
 	size_t MatchGroup::count() const
@@ -87,77 +112,94 @@ namespace MEMfinder
 	};
 
 	template <typename String>
-	std::pair<size_t, std::priority_queue<MatchGroup, std::vector<MatchGroup>, MatchGroupComparer>> getBestMatchGroups(const FMIndex& index, const String& seq, const size_t minLen, const size_t maxCount, const double uniqueBonus, const std::vector<std::pair<size_t, size_t>>& prefixIndex, const size_t prefixLen)
+	std::vector<std::pair<size_t, std::priority_queue<MatchGroup, std::vector<MatchGroup>, MatchGroupComparer>>> getBestMatchGroups(const FMIndex& index, const String& seq, const size_t minLen, const size_t maxCount, const double uniqueBonus, const std::vector<std::pair<size_t, size_t>>& prefixIndex, const size_t prefixLen, const size_t windowSize)
 	{
-		std::priority_queue<MatchGroup, std::vector<MatchGroup>, MatchGroupComparer> chosen { MatchGroupComparer { uniqueBonus } };
-		size_t chosenCount = 0;
-		size_t lengthFloor = minLen;
-		iterateMEMGroups(index, seq, minLen, prefixIndex, prefixLen, [maxCount, minLen, &chosenCount, &lengthFloor, &chosen, uniqueBonus](MatchGroup&& group)
+		size_t windowCount = (seq.size()+windowSize-1)/windowSize;
+		size_t bpPerWindow = seq.size() / windowCount;
+		std::vector<std::priority_queue<MatchGroup, std::vector<MatchGroup>, MatchGroupComparer>> chosen;
+		std::vector<size_t> chosenCount;
+		std::vector<size_t> lengthFloor;
+		for (size_t i = 0; i < windowCount; i++) chosen.emplace_back(MatchGroupComparer { uniqueBonus });
+		chosenCount.resize(windowCount, 0);
+		lengthFloor.resize(windowCount, minLen);
+		iterateMEMGroups(index, seq, minLen, prefixIndex, prefixLen, [maxCount, minLen, &chosenCount, &lengthFloor, &chosen, uniqueBonus, windowSize, windowCount, bpPerWindow](MatchGroup group)
 		{
-			assert(chosenCount <= maxCount);
-			assert(chosen.size() == 0 || chosen.top().prioritizedMatchLength(uniqueBonus) >= lengthFloor);
-			assert(group.matchLength() >= minLen);
-			if (group.prioritizedMatchLength(uniqueBonus) < lengthFloor) return;
-			if (group.count() > maxCount)
+			size_t minWindow = group.queryPos() / bpPerWindow;
+			size_t maxWindow = (group.queryPos() + group.matchLength() - 1) / bpPerWindow;
+			assert(minWindow <= maxWindow);
+			assert(maxWindow < windowCount);
+			for (size_t window = minWindow; window <= maxWindow; window++)
 			{
-				lengthFloor = group.prioritizedMatchLength(uniqueBonus)+1;
-				while (chosen.size() > 0 && chosen.top().prioritizedMatchLength(uniqueBonus) < lengthFloor)
+				assert(chosenCount[window] <= maxCount);
+				assert(chosen[window].size() == 0 || chosen[window].top().prioritizedMatchLength(uniqueBonus) >= lengthFloor[window]);
+				assert(group.matchLength() >= minLen);
+				if (group.prioritizedMatchLength(uniqueBonus) < lengthFloor[window]) continue;
+				if (group.count() > maxCount)
 				{
-					assert(chosenCount >= chosen.top().count());
-					chosenCount -= chosen.top().count();
-					chosen.pop();
+					lengthFloor[window] = group.prioritizedMatchLength(uniqueBonus)+1;
+					while (chosen[window].size() > 0 && chosen[window].top().prioritizedMatchLength(uniqueBonus) < lengthFloor[window])
+					{
+						assert(chosenCount[window] >= chosen[window].top().count());
+						chosenCount[window] -= chosen[window].top().count();
+						chosen[window].pop();
+					}
+					continue;
 				}
-				return;
-			}
-			if (chosenCount + group.count() <= maxCount)
-			{
-				chosenCount += group.count();
-				chosen.emplace(group);
-				return;
-			}
-			assert(chosen.size() > 0);
-			if (group.prioritizedMatchLength(uniqueBonus) < chosen.top().prioritizedMatchLength(uniqueBonus))
-			{
-				assert(lengthFloor <= group.prioritizedMatchLength(uniqueBonus));
-				lengthFloor = group.prioritizedMatchLength(uniqueBonus)+1;
-				assert(chosen.top().prioritizedMatchLength(uniqueBonus) >= lengthFloor);
-				return;
-			}
-			if (group.prioritizedMatchLength(uniqueBonus) == chosen.top().prioritizedMatchLength(uniqueBonus))
-			{
-				lengthFloor = group.prioritizedMatchLength(uniqueBonus)+1;
-				while (chosen.size() > 0 && chosen.top().prioritizedMatchLength(uniqueBonus) < lengthFloor)
+				if (chosenCount[window] + group.count() <= maxCount)
 				{
-					assert(chosenCount >= chosen.top().count());
-					chosenCount -= chosen.top().count();
-					chosen.pop();
+					chosenCount[window] += group.count();
+					chosen[window].emplace(group);
+					continue;
 				}
-				return;
-			}
-			assert(group.prioritizedMatchLength(uniqueBonus) > chosen.top().prioritizedMatchLength(uniqueBonus));
-			assert(group.count() + chosenCount > maxCount);
-			chosenCount += group.count();
-			chosen.emplace(group);
-			while (chosenCount > maxCount)
-			{
-				assert(chosen.size() > 0);
-				lengthFloor = chosen.top().prioritizedMatchLength(uniqueBonus)+1;
-				while (chosen.size() > 0 && chosen.top().prioritizedMatchLength(uniqueBonus) < lengthFloor)
+				assert(chosen[window].size() > 0);
+				if (group.prioritizedMatchLength(uniqueBonus) < chosen[window].top().prioritizedMatchLength(uniqueBonus))
 				{
-					assert(chosenCount >= chosen.top().count());
-					chosenCount -= chosen.top().count();
-					chosen.pop();
+					assert(lengthFloor[window] <= group.prioritizedMatchLength(uniqueBonus));
+					lengthFloor[window] = group.prioritizedMatchLength(uniqueBonus)+1;
+					assert(chosen[window].top().prioritizedMatchLength(uniqueBonus) >= lengthFloor[window]);
+					continue;
+				}
+				if (group.prioritizedMatchLength(uniqueBonus) == chosen[window].top().prioritizedMatchLength(uniqueBonus))
+				{
+					lengthFloor[window] = group.prioritizedMatchLength(uniqueBonus)+1;
+					while (chosen[window].size() > 0 && chosen[window].top().prioritizedMatchLength(uniqueBonus) < lengthFloor[window])
+					{
+						assert(chosenCount[window] >= chosen[window].top().count());
+						chosenCount[window] -= chosen[window].top().count();
+						chosen[window].pop();
+					}
+					continue;
+				}
+				assert(group.prioritizedMatchLength(uniqueBonus) > chosen[window].top().prioritizedMatchLength(uniqueBonus));
+				assert(group.count() + chosenCount[window] > maxCount);
+				chosenCount[window] += group.count();
+				chosen[window].emplace(group);
+				while (chosenCount[window] > maxCount)
+				{
+					assert(chosen[window].size() > 0);
+					lengthFloor[window] = chosen[window].top().prioritizedMatchLength(uniqueBonus)+1;
+					while (chosen[window].size() > 0 && chosen[window].top().prioritizedMatchLength(uniqueBonus) < lengthFloor[window])
+					{
+						assert(chosenCount[window] >= chosen[window].top().count());
+						chosenCount[window] -= chosen[window].top().count();
+						chosen[window].pop();
+					}
 				}
 			}
 		});
-		assert(chosenCount <= maxCount);
-		assert(chosen.size() == 0 || chosen.top().prioritizedMatchLength(uniqueBonus) >= lengthFloor);
-		return std::make_pair(chosenCount, chosen);
+		std::vector<std::pair<size_t, std::priority_queue<MatchGroup, std::vector<MatchGroup>, MatchGroupComparer>>> result;
+		for (size_t window = 0; window < windowCount; window++)
+		{
+			assert(chosenCount[window] <= maxCount);
+			assert(chosen[window].size() == 0 || chosen[window].top().prioritizedMatchLength(uniqueBonus) >= lengthFloor[window]);
+			result.emplace_back(chosenCount[window], std::move(chosen[window]));
+		}
+		return result;
 	}
 
 	std::vector<Match> getBestMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount, const double uniqueBonus)
 	{
-		auto chosen = getBestMatchGroups(index, seq, minLen, maxCount, uniqueBonus, std::vector<std::pair<size_t, size_t>>{}, 0);
+		auto chosen = getBestMatchGroups(index, seq, minLen, maxCount, uniqueBonus, std::vector<std::pair<size_t, size_t>>{}, 0, seq.size())[0];
 		std::vector<Match> result;
 		result.reserve(chosen.first);
 		while (chosen.second.size() > 0)
@@ -175,50 +217,78 @@ namespace MEMfinder
 
 	std::vector<Match> getBestFwBwMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount, const double uniqueBonus)
 	{
-		std::vector<std::pair<size_t, size_t>> fakePrefixIndex;
-		return getBestFwBwMEMs(index, seq, minLen, maxCount, uniqueBonus, fakePrefixIndex, 0);
+		return getBestFwBwMEMs(index, seq, minLen, maxCount, uniqueBonus, seq.size());
 	}
 
-	std::vector<Match> getBestFwBwMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount, const double uniqueBonus, const std::vector<std::pair<size_t, size_t>>& prefixIndex, const size_t prefixLen)
+	std::vector<Match> getBestFwBwMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount, const double uniqueBonus, const size_t windowSize)
 	{
-		auto chosenFw = getBestMatchGroups(index, seq, minLen, maxCount, uniqueBonus, prefixIndex, prefixLen);
+		std::vector<std::pair<size_t, size_t>> fakePrefixIndex;
+		return getBestFwBwMEMs(index, seq, minLen, maxCount, uniqueBonus, fakePrefixIndex, 0, windowSize);
+	}
+
+	std::vector<Match> getBestFwBwMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount, const double uniqueBonus, const std::vector<std::pair<size_t, size_t>>& prefixIndex, const size_t prefixLen, const size_t windowSize)
+	{
+		size_t numWindows = (seq.size() + windowSize - 1) / windowSize;
+		auto chosenFw = getBestMatchGroups(index, seq, minLen, maxCount / numWindows, uniqueBonus, prefixIndex, prefixLen, windowSize);
 		ReverseComplementView revComp { seq };
-		auto chosenBw = getBestMatchGroups(index, revComp, minLen, maxCount, uniqueBonus, prefixIndex, prefixLen);
-		size_t totalChosen = chosenFw.first + chosenBw.first;
-		while (totalChosen > maxCount)
+		auto chosenBw = getBestMatchGroups(index, revComp, minLen, maxCount / numWindows, uniqueBonus, prefixIndex, prefixLen, windowSize);
+		assert(chosenFw.size() == numWindows);
+		assert(chosenBw.size() == numWindows);
+		std::set<MatchGroup> uniqueFwGroups;
+		std::set<MatchGroup> uniqueBwGroups;
+		for (size_t windowindex = 0; windowindex < numWindows; windowindex++)
 		{
-			assert(chosenFw.second.size() > 0 || chosenBw.second.size() > 0);
-			size_t floor = seq.size() * uniqueBonus + 1;
-			if (chosenFw.second.size() > 0) floor = std::min(floor, chosenFw.second.top().prioritizedMatchLength(uniqueBonus));
-			if (chosenBw.second.size() > 0) floor = std::min(floor, chosenBw.second.top().prioritizedMatchLength(uniqueBonus));
-			assert(floor > 0);
-			assert(floor < seq.size() * uniqueBonus + 1);
-			while (chosenFw.second.size() > 0 && chosenFw.second.top().prioritizedMatchLength(uniqueBonus) <= floor)
+			size_t fwWindow = windowindex;
+			size_t bwWindow = numWindows-1-windowindex;
+			size_t totalChosen = chosenFw[fwWindow].first + chosenBw[bwWindow].first;
+			while (totalChosen > maxCount/numWindows)
 			{
-				totalChosen -= chosenFw.second.top().count();
-				chosenFw.second.pop();
+				assert(chosenFw[fwWindow].second.size() > 0 || chosenBw[bwWindow].second.size() > 0);
+				size_t floor = seq.size() * uniqueBonus + 1;
+				if (chosenFw[fwWindow].second.size() > 0) floor = std::min(floor, chosenFw[fwWindow].second.top().prioritizedMatchLength(uniqueBonus));
+				if (chosenBw[bwWindow].second.size() > 0) floor = std::min(floor, chosenBw[bwWindow].second.top().prioritizedMatchLength(uniqueBonus));
+				assert(floor > 0);
+				assert(floor < seq.size() * uniqueBonus + 1);
+				while (chosenFw[fwWindow].second.size() > 0 && chosenFw[fwWindow].second.top().prioritizedMatchLength(uniqueBonus) <= floor)
+				{
+					totalChosen -= chosenFw[fwWindow].second.top().count();
+					chosenFw[fwWindow].second.pop();
+				}
+				while (chosenBw[bwWindow].second.size() > 0 && chosenBw[bwWindow].second.top().prioritizedMatchLength(uniqueBonus) <= floor)
+				{
+					totalChosen -= chosenBw[bwWindow].second.top().count();
+					chosenBw[bwWindow].second.pop();
+				}
 			}
-			while (chosenBw.second.size() > 0 && chosenBw.second.top().prioritizedMatchLength(uniqueBonus) <= floor)
+			size_t foundChosen = 0;
+			while (chosenFw[fwWindow].second.size() > 0)
 			{
-				totalChosen -= chosenBw.second.top().count();
-				chosenBw.second.pop();
+				auto top = chosenFw[fwWindow].second.top();
+				foundChosen += top.count();
+				uniqueFwGroups.emplace(top);
+				chosenFw[fwWindow].second.pop();
 			}
+			while (chosenBw[bwWindow].second.size() > 0)
+			{
+				auto top = chosenBw[bwWindow].second.top();
+				foundChosen += top.count();
+				uniqueBwGroups.emplace(top);
+				chosenBw[bwWindow].second.pop();
+			}
+			assert(foundChosen == totalChosen);
+			assert(foundChosen <= maxCount / numWindows);
 		}
 		std::vector<Match> result;
-		while (chosenFw.second.size() > 0)
+		for (auto group : uniqueFwGroups)
 		{
-			auto top = chosenFw.second.top();
-			chosenFw.second.pop();
-			iterateMEMs(index, seq, top, [&result](Match&& match)
+			iterateMEMs(index, seq, group, [&result](Match&& match)
 			{
 				result.emplace_back(match);
 			});
 		}
-		while (chosenBw.second.size() > 0)
+		for (auto group : uniqueBwGroups)
 		{
-			auto top = chosenBw.second.top();
-			chosenBw.second.pop();
-			iterateMEMs(index, revComp, top, [&result, &seq](Match&& match)
+			iterateMEMs(index, revComp, group, [&result, &seq](Match&& match)
 			{
 				match.fw = false;
 				match.queryPos = seq.size() - match.queryPos - match.length;

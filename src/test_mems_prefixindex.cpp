@@ -70,7 +70,7 @@ int main(int argc, char** argv)
 		getline(file, query);
 	}
 	auto preCount = std::chrono::system_clock::now();
-	auto result = MEMfinder::getBestFwBwMEMs(index, query, minLength, maxCount, 1, prefixIndex, prefixLen);
+	auto result = MEMfinder::getBestFwBwMEMs(index, query, minLength, maxCount, 1, prefixIndex, prefixLen, query.size());
 	auto postCount = std::chrono::system_clock::now();
 	std::cerr << "getting best matches took " << std::chrono::duration_cast<std::chrono::milliseconds>(postCount - preCount).count() << "ms" << std::endl;
 	std::vector<std::set<std::pair<size_t, size_t>>> fwmatches;
