@@ -115,7 +115,7 @@ namespace MEMfinder
 	std::vector<std::pair<size_t, std::priority_queue<MatchGroup, std::vector<MatchGroup>, MatchGroupComparer>>> getBestMatchGroups(const FMIndex& index, const String& seq, const size_t minLen, const size_t maxCount, const double uniqueBonus, const std::vector<std::pair<size_t, size_t>>& prefixIndex, const size_t prefixLen, const size_t windowSize)
 	{
 		size_t windowCount = (seq.size()+windowSize-1)/windowSize;
-		size_t bpPerWindow = seq.size() / windowCount;
+		size_t bpPerWindow = (seq.size() + windowCount - 1) / windowCount;
 		std::vector<std::priority_queue<MatchGroup, std::vector<MatchGroup>, MatchGroupComparer>> chosen;
 		std::vector<size_t> chosenCount;
 		std::vector<size_t> lengthFloor;
