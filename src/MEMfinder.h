@@ -132,7 +132,7 @@ namespace MEMfinder
 				}
 				else
 				{
-					if (mapChar[seq[end-prefixLen+1]] == 0)
+					if (mapChar(seq[end-prefixLen+1]) == 0)
 					{
 						end = end-prefixLen+1;
 						prefix = std::numeric_limits<size_t>::max();
