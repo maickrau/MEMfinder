@@ -97,10 +97,10 @@ namespace MEMfinder
 	{
 	public:
 		MatchGroupComparer() :
-			uniqueBonus(1)
+			uniqueBonus(1.0)
 		{
 		}
-		MatchGroupComparer(size_t uniqueBonus) :
+		MatchGroupComparer(double uniqueBonus) :
 			uniqueBonus(uniqueBonus)
 		{
 		}
@@ -108,7 +108,7 @@ namespace MEMfinder
 		{
 			return left.prioritizedMatchLength(uniqueBonus) > right.prioritizedMatchLength(uniqueBonus);
 		}
-		const size_t uniqueBonus;
+		const double uniqueBonus;
 	};
 
 	template <typename String>

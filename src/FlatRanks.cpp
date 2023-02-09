@@ -11,16 +11,26 @@ built(false)
 
 FlatRanks::FlatRanks(size_t size) :
 counts({0, 0, 0, 0, 0, 0}),
-charBitvector({size, size, size, size, size, size}),
 built(false)
 {
+	charBitvector[0] = {size};
+	charBitvector[1] = {size};
+	charBitvector[2] = {size};
+	charBitvector[3] = {size};
+	charBitvector[4] = {size};
+	charBitvector[5] = {size}; 
 }
 
 FlatRanks::FlatRanks(const std::string& seq) :
 counts({0, 0, 0, 0, 0, 0}),
-charBitvector({seq.size(), seq.size(), seq.size(), seq.size(), seq.size(), seq.size()}),
 built(false)
 {
+	charBitvector[0] = {seq.size()};
+	charBitvector[1] = {seq.size()};
+	charBitvector[2] = {seq.size()};
+	charBitvector[3] = {seq.size()};
+	charBitvector[4] = {seq.size()};
+	charBitvector[5] = {seq.size()};
 	initialize(seq);
 }
 
