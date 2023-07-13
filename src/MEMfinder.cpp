@@ -229,9 +229,10 @@ namespace MEMfinder
 	std::vector<Match> getBestFwBwMEMs(const FMIndex& index, const std::string& seq, const size_t minLen, const size_t maxCount, const double uniqueBonus, const std::vector<std::pair<size_t, size_t>>& prefixIndex, const size_t prefixLen, const size_t windowSize)
 	{
 		size_t numWindows = (seq.size() + windowSize - 1) / windowSize;
-		auto chosenFw = getBestMatchGroups(index, seq, minLen, maxCount / numWindows, uniqueBonus, prefixIndex, prefixLen, windowSize);
+		size_t maxCountPerWindow = (maxCount + numWindows-1) / numWindows;
+		auto chosenFw = getBestMatchGroups(index, seq, minLen, maxCountPerWindow, uniqueBonus, prefixIndex, prefixLen, windowSize);
 		ReverseComplementView revComp { seq };
-		auto chosenBw = getBestMatchGroups(index, revComp, minLen, maxCount / numWindows, uniqueBonus, prefixIndex, prefixLen, windowSize);
+		auto chosenBw = getBestMatchGroups(index, revComp, minLen, maxCountPerWindow, uniqueBonus, prefixIndex, prefixLen, windowSize);
 		assert(chosenFw.size() == numWindows);
 		assert(chosenBw.size() == numWindows);
 		std::set<MatchGroup> uniqueFwGroups;
@@ -241,7 +242,7 @@ namespace MEMfinder
 			size_t fwWindow = windowindex;
 			size_t bwWindow = numWindows-1-windowindex;
 			size_t totalChosen = chosenFw[fwWindow].first + chosenBw[bwWindow].first;
-			while (totalChosen > maxCount/numWindows)
+			while (totalChosen > maxCountPerWindow)
 			{
 				assert(chosenFw[fwWindow].second.size() > 0 || chosenBw[bwWindow].second.size() > 0);
 				size_t floor = seq.size() * uniqueBonus + 1;
@@ -276,7 +277,7 @@ namespace MEMfinder
 				chosenBw[bwWindow].second.pop();
 			}
 			assert(foundChosen == totalChosen);
-			assert(foundChosen <= maxCount / numWindows);
+			assert(foundChosen <= maxCountPerWindow);
 		}
 		std::vector<Match> result;
 		for (auto group : uniqueFwGroups)
