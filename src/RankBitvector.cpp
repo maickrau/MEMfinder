@@ -109,6 +109,18 @@ size_t RankBitvector::rankOne(size_t index) const
 {
 	assert(index <= size());
 	assert(ranksBuilt);
+	if (index == size() && (size() % 512) == 0)
+	{
+		size_t bigBlock = (index-1) / 512;
+		size_t blockStart = bigBlock * 10;
+		size_t smallBlock = ((index-1) % 512) / 64;
+		uint64_t smallResult = (values[blockStart+1] >> (uint64_t)((smallBlock-1) * 9)) & (uint64_t)511;
+		size_t result = values[blockStart] + smallResult;
+		size_t smallBlockIndex = blockStart + 2 + smallBlock;
+		uint64_t bitBlock = values[smallBlockIndex];
+		result += popcount(bitBlock);
+		return result;
+	}
 	size_t bigBlock = index / 512;
 	size_t blockStart = bigBlock * 10;
 	size_t smallBlock = (index % 512) / 64;

@@ -72,6 +72,9 @@ $(BINDIR)/test_fmindex_lowmemory: $(ODIR)/test_fmindex_lowmemory.o $(OBJ)
 $(BINDIR)/test_fmindex_memory_match: $(ODIR)/test_fmindex_memory_match.o $(OBJ)
 	$(GPP) -o $@ $^
 
+$(BINDIR)/test_bigrank: $(ODIR)/test_bigrank.o $(OBJ)
+	$(GPP) -o $@ $^
+
 $(ODIR)/PartSortBWT.o: PartSortBWT/src/PartSortBWT.cpp
 	$(GPP) -c -o $@ $< $(CPPFLAGS)
 
@@ -84,7 +87,7 @@ $(ODIR)/sais64.o: libsais/src/libsais64.c
 $(ODIR)/%.o: $(SRCDIR)/%.cpp $(DEPS)
 	$(GPP) -c -o $@ $< $(CPPFLAGS)
 
-all: $(LIBDIR)/memfinder.a $(BINDIR)/test_bwt $(BINDIR)/test_wavelet $(BINDIR)/test_fmindex $(BINDIR)/test_count $(BINDIR)/test_mems $(BINDIR)/test_bestmems $(BINDIR)/test_mems_bidi $(BINDIR)/test_bestmems_bidi $(BINDIR)/test_save $(BINDIR)/test_mums $(BINDIR)/test_mem_weighted $(BINDIR)/test_bwt_partsort $(BINDIR)/test_fmindex_lowmemory $(BINDIR)/test_fmindex_memory_match $(BINDIR)/test_mems_prefixindex
+all: $(LIBDIR)/memfinder.a $(BINDIR)/test_bwt $(BINDIR)/test_wavelet $(BINDIR)/test_fmindex $(BINDIR)/test_count $(BINDIR)/test_mems $(BINDIR)/test_bestmems $(BINDIR)/test_mems_bidi $(BINDIR)/test_bestmems_bidi $(BINDIR)/test_save $(BINDIR)/test_mums $(BINDIR)/test_mem_weighted $(BINDIR)/test_bwt_partsort $(BINDIR)/test_fmindex_lowmemory $(BINDIR)/test_fmindex_memory_match $(BINDIR)/test_mems_prefixindex $(BINDIR)/test_bigrank
 
 clean:
 	rm -f $(ODIR)/*
