@@ -16,5 +16,8 @@ int main(int argc, char** argv)
 	tmp.resize(seq.size(), 0);
 	size_t result = libsais64_bwt((uint8_t*)seq.data(), (uint8_t*)seq.data(), (int64_t*)tmp.data(), seq.size(), 0, nullptr);
 	std::cerr << "result " << result << std::endl;
-	std::cout << seq;
+	std::cout << seq.substr(0, result);
+	std::cout << "$";
+	std::cout << seq.substr(result);
+	std::cout << std::endl;
 }
