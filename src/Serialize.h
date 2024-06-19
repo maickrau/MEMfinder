@@ -1,6 +1,7 @@
 #ifndef Serialize_h
 #define Serialize_h
 
+#include <cstdint>
 #include <iostream>
 #include <vector>
 
