@@ -12,7 +12,7 @@ int main(int argc, char** argv)
 		std::ifstream file { argv[1] };
 		getline(file, seq);
 	}
-	bool useWaveletTree = std::stoi(argv[3]);
+	int prefixIndexType = std::stoi(argv[3]);
 	for (size_t i = 0; i < seq.size(); i++)
 	{
 		switch(seq[i])
@@ -40,7 +40,7 @@ int main(int argc, char** argv)
 	}
 	seq.push_back(0);
 	std::string copy { seq };
-	FMIndex index { std::move(copy), sampleRate, true, useWaveletTree };
+	FMIndex index { std::move(copy), sampleRate, true, (FMIndex::IndexPrefixStructureType)prefixIndexType };
 	// std::string tmp;
 	// std::cout << "done" << std::endl;
 	// getline(std::cin, tmp);

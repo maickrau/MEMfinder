@@ -17,7 +17,7 @@ hasPosition()
 {
 }
 
-FMIndex::FMIndex(std::string&& seq, const size_t sampleRate, const bool lowMemoryConstruction, const bool useWaveletTree) :
+FMIndex::FMIndex(std::string&& seq, const size_t sampleRate, const bool lowMemoryConstruction, const IndexPrefixStructureType prefixStructureType) :
 built(false),
 sampleRate(0),
 tree(),
@@ -28,17 +28,17 @@ hasPosition()
 {
 	if (lowMemoryConstruction)
 	{
-		initializeLowMemory(std::move(seq), sampleRate, useWaveletTree);
+		initializeLowMemory(std::move(seq), sampleRate, prefixStructureType);
 	}
 	else
 	{
-		initialize(std::move(seq), sampleRate, useWaveletTree);
+		initialize(std::move(seq), sampleRate, prefixStructureType);
 	}
 }
 
-void FMIndex::initialize(std::string&& seq, const size_t sampleRate, const bool useWaveletTree)
+void FMIndex::initialize(std::string&& seq, const size_t sampleRate, const IndexPrefixStructureType prefixStructureType)
 {
-	hasWaveletTree = useWaveletTree;
+	this->prefixStructureType = prefixStructureType;
 	assert(!built);
 	hasPosition.resize(seq.size());
 	this->sampleRate = sampleRate;
@@ -104,31 +104,49 @@ void FMIndex::initialize(std::string&& seq, const size_t sampleRate, const bool 
 		}
 		assert(lowSample || sampledPositions.size() == (seq.size() + sampleRate - 1) / sampleRate);
 		assert(!lowSample || lowSampledPositions.size() == (seq.size() + sampleRate - 1) / sampleRate);
-		if (useWaveletTree)
+		switch(prefixStructureType)
 		{
-			tree.initialize(bwt);
-		}
-		else
-		{
-			flatRanks.initialize(bwt);
+			case IndexPrefixStructureType::useFlatRanks:
+				flatRanks.initialize(bwt);
+				break;
+			case IndexPrefixStructureType::useWaveletTree:
+				tree.initialize(bwt);
+				break;
+			case IndexPrefixStructureType::useDNAPrefixSumIndex:
+				prefixSumIndex.initialize(bwt);
+				break;
+			default:
+				assert(false);
+				break;
 		}
 	}
 	startIndices[0] = 0;
-	if (useWaveletTree)
+	switch(prefixStructureType)
 	{
-		startIndices[1] = tree.charCount(0);
-		startIndices[2] = tree.charCount(1) + startIndices[1];
-		startIndices[3] = tree.charCount(2) + startIndices[2];
-		startIndices[4] = tree.charCount(3) + startIndices[3];
-		startIndices[5] = tree.charCount(4) + startIndices[4];
-	}
-	else
-	{
-		startIndices[1] = flatRanks.charCount(0);
-		startIndices[2] = flatRanks.charCount(1) + startIndices[1];
-		startIndices[3] = flatRanks.charCount(2) + startIndices[2];
-		startIndices[4] = flatRanks.charCount(3) + startIndices[3];
-		startIndices[5] = flatRanks.charCount(4) + startIndices[4];
+		case IndexPrefixStructureType::useWaveletTree:
+			startIndices[1] = tree.charCount(0);
+			startIndices[2] = tree.charCount(1) + startIndices[1];
+			startIndices[3] = tree.charCount(2) + startIndices[2];
+			startIndices[4] = tree.charCount(3) + startIndices[3];
+			startIndices[5] = tree.charCount(4) + startIndices[4];
+			break;
+		case IndexPrefixStructureType::useFlatRanks:
+			startIndices[1] = flatRanks.charCount(0);
+			startIndices[2] = flatRanks.charCount(1) + startIndices[1];
+			startIndices[3] = flatRanks.charCount(2) + startIndices[2];
+			startIndices[4] = flatRanks.charCount(3) + startIndices[3];
+			startIndices[5] = flatRanks.charCount(4) + startIndices[4];
+			break;
+		case IndexPrefixStructureType::useDNAPrefixSumIndex:
+			startIndices[1] = prefixSumIndex.charCount(0);
+			startIndices[2] = prefixSumIndex.charCount(1) + startIndices[1];
+			startIndices[3] = prefixSumIndex.charCount(2) + startIndices[2];
+			startIndices[4] = prefixSumIndex.charCount(3) + startIndices[3];
+			startIndices[5] = prefixSumIndex.charCount(4) + startIndices[4];
+			break;
+		default:
+			assert(false);
+			break;
 	}
 	assert(startIndices[5] < size());
 	hasPosition.buildRanks();
@@ -137,7 +155,7 @@ void FMIndex::initialize(std::string&& seq, const size_t sampleRate, const bool 
 	built = true;
 }
 
-void FMIndex::initializeLowMemory(std::string&& seq, const size_t sampleRate, const bool useWaveletTree)
+void FMIndex::initializeLowMemory(std::string&& seq, const size_t sampleRate, const IndexPrefixStructureType prefixStructureType)
 {
 	for (size_t i = 0; i < seq.size()-1; i++)
 	{
@@ -146,12 +164,12 @@ void FMIndex::initializeLowMemory(std::string&& seq, const size_t sampleRate, co
 	}
 	assert(seq[seq.size()-1] == 0);
 	partSortBWT(seq, seq);
-	initializeFromBWT(std::move(seq), sampleRate, useWaveletTree);
+	initializeFromBWT(std::move(seq), sampleRate, prefixStructureType);
 }
 
-void FMIndex::initializeFromBWT(std::string&& bwt, const size_t sampleRate, const bool useWaveletTree)
+void FMIndex::initializeFromBWT(std::string&& bwt, const size_t sampleRate, const IndexPrefixStructureType prefixStructureType)
 {
-	hasWaveletTree = useWaveletTree;
+	this->prefixStructureType = prefixStructureType;
 	assert(!built);
 	lowSample = (size_t)((bwt.size() + sampleRate - 1) / sampleRate) < (size_t)std::numeric_limits<uint32_t>::max();
 	if (lowSample)
@@ -162,15 +180,23 @@ void FMIndex::initializeFromBWT(std::string&& bwt, const size_t sampleRate, cons
 	{
 		sampledPositions.reserve((bwt.size() + sampleRate - 1) / sampleRate);
 	}
-	if (useWaveletTree)
+	switch(prefixStructureType)
 	{
-		tree.initialize(bwt);
-		assert(tree.size() == bwt.size());
-	}
-	else
-	{
-		flatRanks.initialize(bwt);
-		assert(flatRanks.size() == bwt.size());
+		case IndexPrefixStructureType::useWaveletTree:
+			tree.initialize(bwt);
+			assert(tree.size() == bwt.size());
+			break;
+		case IndexPrefixStructureType::useFlatRanks:
+			flatRanks.initialize(bwt);
+			assert(flatRanks.size() == bwt.size());
+			break;
+		case IndexPrefixStructureType::useDNAPrefixSumIndex:
+			prefixSumIndex.initialize(bwt);
+			assert(prefixSumIndex.size() == bwt.size());
+			break;
+		default:
+			assert(false);
+			break;
 	}
 	{
 		std::string tmp;
@@ -181,21 +207,32 @@ void FMIndex::initializeFromBWT(std::string&& bwt, const size_t sampleRate, cons
 	assert(sampleRate >= 1);
 	assert(sampleRate < size());
 	startIndices[0] = 0;
-	if (useWaveletTree)
+	switch(prefixStructureType)
 	{
-		startIndices[1] = tree.charCount(0);
-		startIndices[2] = tree.charCount(1) + startIndices[1];
-		startIndices[3] = tree.charCount(2) + startIndices[2];
-		startIndices[4] = tree.charCount(3) + startIndices[3];
-		startIndices[5] = tree.charCount(4) + startIndices[4];
-	}
-	else
-	{
-		startIndices[1] = flatRanks.charCount(0);
-		startIndices[2] = flatRanks.charCount(1) + startIndices[1];
-		startIndices[3] = flatRanks.charCount(2) + startIndices[2];
-		startIndices[4] = flatRanks.charCount(3) + startIndices[3];
-		startIndices[5] = flatRanks.charCount(4) + startIndices[4];
+		case IndexPrefixStructureType::useWaveletTree:
+			startIndices[1] = tree.charCount(0);
+			startIndices[2] = tree.charCount(1) + startIndices[1];
+			startIndices[3] = tree.charCount(2) + startIndices[2];
+			startIndices[4] = tree.charCount(3) + startIndices[3];
+			startIndices[5] = tree.charCount(4) + startIndices[4];
+			break;
+		case IndexPrefixStructureType::useFlatRanks:
+			startIndices[1] = flatRanks.charCount(0);
+			startIndices[2] = flatRanks.charCount(1) + startIndices[1];
+			startIndices[3] = flatRanks.charCount(2) + startIndices[2];
+			startIndices[4] = flatRanks.charCount(3) + startIndices[3];
+			startIndices[5] = flatRanks.charCount(4) + startIndices[4];
+			break;
+		case IndexPrefixStructureType::useDNAPrefixSumIndex:
+			startIndices[1] = prefixSumIndex.charCount(0);
+			startIndices[2] = prefixSumIndex.charCount(1) + startIndices[1];
+			startIndices[3] = prefixSumIndex.charCount(2) + startIndices[2];
+			startIndices[4] = prefixSumIndex.charCount(3) + startIndices[3];
+			startIndices[5] = prefixSumIndex.charCount(4) + startIndices[4];
+			break;
+		default:
+			assert(false);
+			break;
 	}
 	assert(startIndices[5] < size());
 	size_t index = 0;
@@ -260,13 +297,20 @@ size_t FMIndex::advance(size_t pos, uint8_t c) const
 	assert(c <= 5);
 	assert(startIndices[c] < size());
 	size_t rank;
-	if (hasWaveletTree)
+	switch(prefixStructureType)
 	{
-		rank = tree.rank(pos, c);
-	}
-	else
-	{
-		rank = flatRanks.rank(pos, c);
+		case IndexPrefixStructureType::useWaveletTree:
+			rank = tree.rank(pos, c);
+			break;
+		case IndexPrefixStructureType::useFlatRanks:
+			rank = flatRanks.rank(pos, c);
+			break;
+		case IndexPrefixStructureType::useDNAPrefixSumIndex:
+			rank = prefixSumIndex.rank(pos, c);
+			break;
+		default:
+			assert(false);
+			break;
 	}
 	assert(rank < size());
 	size_t result = startIndices[c] + rank;
@@ -283,25 +327,33 @@ std::pair<size_t, size_t> FMIndex::advance(size_t start, size_t end, uint8_t c) 
 
 size_t FMIndex::size() const
 {
-	if (hasWaveletTree)
+	switch(prefixStructureType)
 	{
-		return tree.size();
-	}
-	else
-	{
-		return flatRanks.size();
+		case IndexPrefixStructureType::useWaveletTree:
+			return tree.size();
+		case IndexPrefixStructureType::useFlatRanks:
+			return flatRanks.size();
+		case IndexPrefixStructureType::useDNAPrefixSumIndex:
+			return prefixSumIndex.size();
+		default:
+			assert(false);
+			std::abort();
 	}
 }
 
 size_t FMIndex::charCount(uint8_t c) const
 {
-	if (hasWaveletTree)
+	switch(prefixStructureType)
 	{
-		return tree.charCount(c);
-	}
-	else
-	{
-		return flatRanks.charCount(c);
+		case IndexPrefixStructureType::useWaveletTree:
+			return tree.charCount(c);
+		case IndexPrefixStructureType::useFlatRanks:
+			return flatRanks.charCount(c);
+		case IndexPrefixStructureType::useDNAPrefixSumIndex:
+			return prefixSumIndex.charCount(c);
+		default:
+			assert(false);
+			std::abort();
 	}
 }
 
@@ -349,13 +401,17 @@ uint8_t FMIndex::getNext(size_t i) const
 
 uint8_t FMIndex::get(size_t i) const
 {
-	if (hasWaveletTree)
+	switch(prefixStructureType)
 	{
-		return tree.get(i);
-	}
-	else
-	{
-		return flatRanks.get(i);
+		case IndexPrefixStructureType::useWaveletTree:
+			return tree.get(i);
+		case IndexPrefixStructureType::useFlatRanks:
+			return flatRanks.get(i);
+		case IndexPrefixStructureType::useDNAPrefixSumIndex:
+			return prefixSumIndex.get(i);
+		default:
+			assert(false);
+			std::abort();
 	}
 }
 
@@ -377,8 +433,9 @@ void FMIndex::save(std::ostream& stream) const
 	serialize(stream, lowSampledPositions);
 	serialize(stream, sampledPositions);
 	hasPosition.save(stream);
-	serialize(stream, hasWaveletTree);
+	serialize(stream, (uint8_t)prefixStructureType);
 	flatRanks.save(stream);
+	prefixSumIndex.save(stream);
 }
 
 void FMIndex::load(std::istream& stream)
@@ -394,8 +451,11 @@ void FMIndex::load(std::istream& stream)
 	deserialize(stream, lowSampledPositions);
 	deserialize(stream, sampledPositions);
 	hasPosition.load(stream);
-	deserialize(stream, hasWaveletTree);
+	uint8_t val = 0;
+	deserialize(stream, val);
+	prefixStructureType = (IndexPrefixStructureType)val;
 	flatRanks.load(stream);
+	prefixSumIndex.load(stream);
 	built = true;
 }
 
@@ -412,8 +472,9 @@ bool FMIndex::operator==(const FMIndex& other) const
 	if (lowSampledPositions != other.lowSampledPositions) return false;
 	if (sampledPositions != other.sampledPositions) return false;
 	if (hasPosition != other.hasPosition) return false;
-	if (hasWaveletTree != other.hasWaveletTree) return false;
+	if (prefixStructureType != other.prefixStructureType) return false;
 	if (flatRanks != other.flatRanks) return false;
+	if (prefixSumIndex != other.prefixSumIndex) return false;
 	return true;
 }
 

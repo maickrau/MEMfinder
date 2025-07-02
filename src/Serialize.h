@@ -6,6 +6,7 @@
 #include <iostream>
 #include <vector>
 
+void serialize(std::ostream& stream, uint8_t value);
 void serialize(std::ostream& stream, uint32_t value);
 void serialize(std::ostream& stream, uint64_t value);
 void serialize(std::ostream& stream, __uint128_t value);
@@ -29,6 +30,7 @@ void serialize(std::ostream& stream, const std::array<T, Length>& value)
 	}
 }
 
+void deserialize(std::istream& stream, uint8_t& value);
 void deserialize(std::istream& stream, uint32_t& value);
 void deserialize(std::istream& stream, uint64_t& value);
 void deserialize(std::istream& stream, __uint128_t& value);

@@ -1,5 +1,10 @@
 #include "Serialize.h"
 
+void serialize(std::ostream& stream, uint8_t value)
+{
+	stream.write((const char*)&value, sizeof(uint8_t));
+}
+
 void serialize(std::ostream& stream, uint32_t value)
 {
 	stream.write((const char*)&value, sizeof(uint32_t));
@@ -25,6 +30,11 @@ void serialize(std::ostream& stream, std::pair<uint64_t, uint64_t> value)
 {
 	stream.write((const char*)&value.first, sizeof(uint64_t));
 	stream.write((const char*)&value.second, sizeof(uint64_t));
+}
+
+void deserialize(std::istream& stream, uint8_t& value)
+{
+	stream.read((char*)&value, sizeof(uint8_t));
 }
 
 void deserialize(std::istream& stream, uint32_t& value)
