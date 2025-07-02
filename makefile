@@ -1,5 +1,5 @@
 GPP=$(CXX)
-CPPFLAGS=-Wall -Wextra -std=c++17 -O3 -g -Ilibsais/src -IPartSortBWT/src $(DEBUGFLAG)
+CPPFLAGS=-Wall -Wextra -std=c++17 -O3 -Ilibsais/src -IPartSortBWT/src $(DEBUGFLAG)
 
 ODIR=obj
 BINDIR=bin
@@ -8,10 +8,10 @@ SRCDIR=src
 
 LIBS=
 
-_DEPS = RankBitvector.h WaveletTree.h FMIndex.h MEMfinder.h ReverseComplementView.h Serialize.h FlatRanks.h
+_DEPS = RankBitvector.h WaveletTree.h FMIndex.h MEMfinder.h ReverseComplementView.h Serialize.h FlatRanks.h DNAPrefixSumIndex.h
 DEPS = $(patsubst %, $(SRCDIR)/%, $(_DEPS))
 
-_OBJ = RankBitvector.o WaveletTree.o FMIndex.o MEMfinder.o ReverseComplementView.o Serialize.o FlatRanks.o
+_OBJ = RankBitvector.o WaveletTree.o FMIndex.o MEMfinder.o ReverseComplementView.o Serialize.o FlatRanks.o DNAPrefixSumIndex.o
 OBJ = $(patsubst %, $(ODIR)/%, $(_OBJ)) $(ODIR)/sais.o $(ODIR)/sais64.o $(ODIR)/PartSortBWT.o
 
 LINKFLAGS = $(CPPFLAGS) -static-libstdc++
@@ -75,6 +75,12 @@ $(BINDIR)/test_fmindex_memory_match: $(ODIR)/test_fmindex_memory_match.o $(OBJ)
 $(BINDIR)/test_bigrank: $(ODIR)/test_bigrank.o $(OBJ)
 	$(GPP) -o $@ $^
 
+$(BINDIR)/test_compare_wavelets: $(ODIR)/test_compare_wavelets.o $(OBJ)
+	$(GPP) -o $@ $^
+
+$(BINDIR)/test_compare_wavelets_2: $(ODIR)/test_compare_wavelets_2.o $(OBJ)
+	$(GPP) -o $@ $^
+
 $(ODIR)/PartSortBWT.o: PartSortBWT/src/PartSortBWT.cpp
 	$(GPP) -c -o $@ $< $(CPPFLAGS)
 
@@ -87,7 +93,7 @@ $(ODIR)/sais64.o: libsais/src/libsais64.c
 $(ODIR)/%.o: $(SRCDIR)/%.cpp $(DEPS)
 	$(GPP) -c -o $@ $< $(CPPFLAGS)
 
-all: $(LIBDIR)/memfinder.a $(BINDIR)/test_bwt $(BINDIR)/test_wavelet $(BINDIR)/test_fmindex $(BINDIR)/test_count $(BINDIR)/test_mems $(BINDIR)/test_bestmems $(BINDIR)/test_mems_bidi $(BINDIR)/test_bestmems_bidi $(BINDIR)/test_save $(BINDIR)/test_mums $(BINDIR)/test_mem_weighted $(BINDIR)/test_bwt_partsort $(BINDIR)/test_fmindex_lowmemory $(BINDIR)/test_fmindex_memory_match $(BINDIR)/test_mems_prefixindex $(BINDIR)/test_bigrank
+all: $(LIBDIR)/memfinder.a $(BINDIR)/test_bwt $(BINDIR)/test_wavelet $(BINDIR)/test_fmindex $(BINDIR)/test_count $(BINDIR)/test_mems $(BINDIR)/test_bestmems $(BINDIR)/test_mems_bidi $(BINDIR)/test_bestmems_bidi $(BINDIR)/test_save $(BINDIR)/test_mums $(BINDIR)/test_mem_weighted $(BINDIR)/test_bwt_partsort $(BINDIR)/test_fmindex_lowmemory $(BINDIR)/test_fmindex_memory_match $(BINDIR)/test_mems_prefixindex $(BINDIR)/test_bigrank $(BINDIR)/test_compare_wavelets $(BINDIR)/test_compare_wavelets_2
 
 clean:
 	rm -f $(ODIR)/*
