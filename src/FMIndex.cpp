@@ -296,7 +296,7 @@ size_t FMIndex::advance(size_t pos, uint8_t c) const
 {
 	assert(c <= 5);
 	assert(startIndices[c] < size());
-	size_t rank;
+	size_t rank = size();
 	switch(prefixStructureType)
 	{
 		case IndexPrefixStructureType::useWaveletTree:

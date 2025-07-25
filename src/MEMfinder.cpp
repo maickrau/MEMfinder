@@ -383,6 +383,7 @@ namespace MEMfinder
 				if (left.queryPos < right.queryPos) return true;
 				if (left.queryPos > right.queryPos) return false;
 				assert(false);
+				return false;
 			});
 		}
 		return mums;
