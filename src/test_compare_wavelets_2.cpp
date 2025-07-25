@@ -37,7 +37,7 @@ void measure(const std::string& seq)
 	std::cerr << "query " << std::to_string(querymilliseconds / 1000) + "," + std::to_string(querymilliseconds % 1000) + " s" << std::endl;
 }
 
-int main(int argc, char** argv)
+int main(int, char** argv)
 {
 	int which = std::stoi(argv[1]);
 	std::string seq;

@@ -7,7 +7,7 @@
 #include "FMIndex.h"
 #include "MEMfinder.h"
 
-int main(int argc, char** argv)
+int main(int, char** argv)
 {
 	size_t indexDensity = std::stoi(argv[3]);
 	size_t minLength = std::stoi(argv[4]);

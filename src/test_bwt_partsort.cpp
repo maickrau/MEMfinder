@@ -4,7 +4,7 @@
 #include <vector>
 #include "PartSortBWT.h"
 
-int main(int argc, char** argv)
+int main(int, char** argv)
 {
 	std::string seq;
 	{
@@ -37,7 +37,7 @@ int main(int argc, char** argv)
 	partSortBWT(seq, seq);
 	for (size_t i = 0; i < seq.size(); i++)
 	{
-		std::cout << "$_ACGT"[seq[i]];
+		std::cout << "$_ACGT"[(size_t)seq[i]];
 	}
 	std::cout << std::endl;
 }

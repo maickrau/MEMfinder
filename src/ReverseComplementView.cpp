@@ -29,7 +29,7 @@ size_t ReverseComplementView::size() const
 	return seq.size();
 }
 
-const char ReverseComplementView::operator[](size_t pos) const
+char ReverseComplementView::operator[](size_t pos) const
 {
 	return complement[seq[seq.size()-1-pos]];
 }

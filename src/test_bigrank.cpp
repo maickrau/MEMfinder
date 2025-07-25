@@ -3,7 +3,7 @@
 #include <cassert>
 #include "WaveletTree.h"
 
-int main(int argc, char** argv)
+int main(int, char** argv)
 {
 	size_t count = std::stoull(argv[1]); // 3822108160
 	RankBitvector bitvector;

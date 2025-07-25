@@ -7,7 +7,7 @@
 #include "FMIndex.h"
 #include "MEMfinder.h"
 
-int main(int argc, char** argv)
+int main(int, char** argv)
 {
 	size_t indexDensity = std::stoi(argv[3]);
 	size_t minLength = std::stoi(argv[4]);
@@ -53,7 +53,6 @@ int main(int argc, char** argv)
 		std::ifstream file { argv[2] };
 		getline(file, query);
 	}
-	size_t matchCount = 0;
 	auto preCount = std::chrono::system_clock::now();
 	auto result = MEMfinder::getBestMEMs(index, query, minLength, maxCount, 1);
 	auto postCount = std::chrono::system_clock::now();

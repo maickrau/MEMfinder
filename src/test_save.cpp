@@ -5,7 +5,7 @@
 #include <fstream>
 #include "FMIndex.h"
 
-int main(int argc, char** argv)
+int main(int, char** argv)
 {
 	size_t sampleRate = std::stoi(argv[2]);
 	std::string seq;
