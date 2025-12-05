@@ -2,14 +2,25 @@
 #include "RankBitvector.h"
 #include "Serialize.h"
 
-int popcount(uint64_t x)
-{
-	//https://gcc.gnu.org/onlinedocs/gcc-4.8.4/gcc/X86-Built-in-Functions.html
-	// return __builtin_popcountll(x);
-	//for some reason __builtin_popcount takes 21 instructions so call assembly directly
-	__asm__("popcnt %0, %0" : "+r" (x));
-	return x;
-}
+#if defined(__arm__) || defined(__aarch64__)
+        int popcount(uint64_t x)
+        {
+                //https://en.wikipedia.org/wiki/Hamming_weight
+                x -= (x >> 1) & 0x5555555555555555;
+                x = (x & 0x3333333333333333) + ((x >> 2) & 0x3333333333333333);
+                x = (x + (x >> 4)) & 0x0f0f0f0f0f0f0f0f;
+                return (x * 0x0101010101010101) >> 56;
+        }
+#else
+        int popcount(uint64_t x)
+        {
+                //https://gcc.gnu.org/onlinedocs/gcc-4.8.4/gcc/X86-Built-in-Functions.html
+                // return __builtin_popcountll(x);
+                //for some reason __builtin_popcount takes 21 instructions so call assembly directly
+                __asm__("popcnt %0, %0" : "+r" (x));
+                return x;
+        }
+#endif
 
 RankBitvector::RankBitvector() :
 values(),
