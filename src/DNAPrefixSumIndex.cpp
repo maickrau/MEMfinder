@@ -40,7 +40,7 @@ void DNAPrefixSumIndex::initialize(const std::string& seq)
 	bytes.resize(countBigChunks * 23 + countMidChunks * 11, 0);
 	for (size_t bigChunk = 0; bigChunk < countBigChunks; bigChunk++)
 	{
-		std::array<size_t, 6> countsBeforeMidChunks = counts;
+		std::array<uint64_t, 6> countsBeforeMidChunks = counts;
 		BigChunk bigChunkUnderConstruction;
 		for (size_t i = 0; i < 6; i++)
 		{
@@ -53,7 +53,7 @@ void DNAPrefixSumIndex::initialize(const std::string& seq)
 		}
 		for (size_t midChunk = 0; midChunk < countMidChunksPerBigChunk && bigChunk*countMidChunksPerBigChunk+midChunk < countMidChunks; midChunk++)
 		{
-			std::array<size_t, 6> countsBeforeSmallChunks = counts;
+			std::array<uint64_t, 6> countsBeforeSmallChunks = counts;
 			MidChunk midChunkUnderConstruction;
 			for (size_t i = 0; i < 6; i++)
 			{
